@@ -1,36 +1,273 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Alma Document Automation
 
-## Getting Started
+> AI/ML Engineering Take-Home Assignment
 
-First, run the development server:
+## Table of Contents
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- [Executive Summary](#executive-summary)
+- [Project Purpose](#project-purpose)
+- [Feature Objectives](#feature-objectives)
+- [Development Methodology](#development-methodology)
+- [Repository Structure](#repository-structure)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Tech Stack](#tech-stack)
+
+---
+
+## Executive Summary
+
+This repository contains a document automation web application that extracts structured data from **passport** and **G-28 immigration forms**, then auto-populates a target web form using browser automation. The project demonstrates end-to-end AI/ML engineering capabilities including document processing, multi-strategy data extraction (MRZ, OCR, LLM), and intelligent form population.
+
+**Target Form:** https://mendrika-alma.github.io/form-submission/
+
+### Key Capabilities
+
+| Capability | Description |
+|------------|-------------|
+| Document Upload | Accept PDF and image files (JPEG, PNG) up to 10MB |
+| Data Extraction | MRZ parsing → OCR → LLM vision (fallback chain) |
+| Multi-Country Support | Handle passports from various countries |
+| Form Automation | Playwright-based browser automation |
+| Robustness | Tolerate document variations without code changes |
+
+---
+
+## Project Purpose
+
+This take-home assignment for [Alma](https://tryalma.ai) simulates a real-world document automation process that reduces manual data entry effort in immigration workflows. The application demonstrates:
+
+1. **AI/ML Integration** - Combining traditional computer vision (MRZ, OCR) with modern LLM capabilities
+2. **Production Patterns** - Type-safe, testable, maintainable code architecture
+3. **Browser Automation** - Reliable form population using Playwright
+4. **Agentic Development** - Systematic AI-assisted coding with Claude Code
+
+---
+
+## Feature Objectives
+
+Based on the Product Requirements Document (PRD), the following deliverables must be met:
+
+### 1. File Upload Interface
+
+- [ ] Web interface for document upload (Next.js/React)
+- [ ] Support PDF and image formats (JPEG, PNG)
+- [ ] Drag-and-drop functionality
+- [ ] File validation (type, size)
+
+### 2. Data Extraction
+
+- [ ] **MRZ Extraction** - Parse Machine Readable Zone from passports
+- [ ] **OCR Processing** - Extract text from documents
+- [ ] **LLM-Based Extraction** - Vision model fallback for complex cases
+
+**Fields to Extract:**
+
+| Source | Fields |
+|--------|--------|
+| Passport | Full name, DOB, nationality, passport number, expiration, sex |
+| G-28 Form | Attorney name, firm, address, client name, A-number |
+
+### 3. Form Population
+
+- [ ] Navigate to target form URL via Playwright
+- [ ] Accurately fill fields with extracted data
+- [ ] Handle different input types (text, date, select)
+- [ ] **Do NOT submit or digitally sign the form**
+
+### 4. Robustness Requirements
+
+- [ ] Handle passports from various countries
+- [ ] Tolerate minor document formatting variations
+- [ ] Graceful handling of missing data
+- [ ] No hardcoded field positions or values
+
+### 5. Deliverables Checklist
+
+- [ ] Local web interface with minimal setup
+- [ ] Working source code in GitHub repository
+- [ ] Clear setup instructions
+- [ ] Screen recording of workflow (Loom)
+
+---
+
+## Development Methodology
+
+### Planning → Implementation → Validation (PIV)
+
+This project follows a systematic **PIV workflow** optimized for AI-assisted development with Claude Code:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         PLANNING                                 │
+│  Frontload context, define architecture, create agent guides    │
+├─────────────────────────────────────────────────────────────────┤
+│  • /init → Generate CLAUDE.md foundation                        │
+│  • Cross-reference boilerplate best practices                   │
+│  • Create .agents/ for domain specialization                    │
+│  • Write system_design_docs/ specifications                     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                       IMPLEMENTATION                             │
+│  Execute with combined context from planning artifacts          │
+├─────────────────────────────────────────────────────────────────┤
+│  • Load CLAUDE.md (automatic)                                   │
+│  • Load relevant .agents/*.md for task domain                   │
+│  • Reference system_design_docs/ for specifications             │
+│  • Build features following established patterns                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        VALIDATION                                │
+│  Verify compliance with directives and boundaries               │
+├─────────────────────────────────────────────────────────────────┤
+│  • Check against Development Directives                         │
+│  • Verify agent boundaries respected                            │
+│  • Run tests (unit, integration, E2E)                           │
+│  • Orchestrator review for cross-cutting concerns               │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Claude Code Best Practices Applied
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Practice | Implementation |
+|----------|----------------|
+| **CLAUDE.md as Foundation** | Project context, directives, tech stack, data flow |
+| **Agent Specialization** | Domain-specific guides in `.agents/` for focused context |
+| **Markdown-as-Context** | Human-readable, version-controlled AI guidance |
+| **Progressive Context** | Generic → Project → Task-specific layering |
+| **Immutable Directives** | Non-negotiable rules enforced across all agents |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Frontloaded Planning
 
-## Learn More
+Before writing implementation code, extensive planning artifacts were created:
 
-To learn more about Next.js, take a look at the following resources:
+```
+Planning Artifacts Created
+├── CLAUDE.md                    # Foundation context for Claude Code
+├── .agents/                     # 6 specialized agent guides
+│   ├── _index.md               # Routing rules
+│   ├── backend.md              # File processing patterns
+│   ├── frontend.md             # UI component specs
+│   ├── api.md                  # Endpoint contracts
+│   ├── ai-ml.md                # Extraction strategies
+│   ├── automation.md           # Playwright patterns
+│   └── orchestrator.md         # Review checklists
+└── system_design_docs/          # 8 detailed specifications
+    ├── ARCHITECTURE.md
+    ├── DATA_FLOW.md
+    ├── API_SPEC.md
+    ├── COMPONENTS.md
+    ├── EXTRACTION.md
+    ├── AUTOMATION.md
+    ├── DEPLOYMENT.md
+    └── guardrails.md
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Why Frontload Planning?**
+- Reduces implementation ambiguity
+- Enables parallel agent execution
+- Creates reusable context for AI-assisted development
+- Establishes clear boundaries and contracts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Repository Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+alma/
+├── CLAUDE.md                   # AI guidance (start here)
+├── README.md                   # This file
+├── .agents/                    # Domain-specific agent guides
+├── system_design_docs/         # Detailed specifications
+├── src/
+│   └── app/                    # Next.js App Router
+├── public/                     # Static assets
+├── G-28.pdf                    # Sample G-28 form
+├── package.json
+└── tsconfig.json
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 20+
+- npm 10+
+
+### Installation
+
+```bash
+# Clone repository
+git clone git@github.com:thomas-to-bcheme/alma-takehome.git
+cd alma-takehome
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+Open http://localhost:3000
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [`CLAUDE.md`](./CLAUDE.md) | AI guidance, directives, project overview |
+| [`.agents/_index.md`](./.agents/_index.md) | Agent routing and descriptions |
+| [`system_design_docs/`](./system_design_docs/) | Detailed technical specifications |
+
+### System Design Documents
+
+| Document | Contents |
+|----------|----------|
+| [`ARCHITECTURE.md`](./system_design_docs/ARCHITECTURE.md) | System layers, tech decisions |
+| [`DATA_FLOW.md`](./system_design_docs/DATA_FLOW.md) | End-to-end data pipeline |
+| [`API_SPEC.md`](./system_design_docs/API_SPEC.md) | Endpoint contracts |
+| [`COMPONENTS.md`](./system_design_docs/COMPONENTS.md) | React component hierarchy |
+| [`EXTRACTION.md`](./system_design_docs/EXTRACTION.md) | MRZ, OCR, LLM strategies |
+| [`AUTOMATION.md`](./system_design_docs/AUTOMATION.md) | Playwright patterns |
+| [`DEPLOYMENT.md`](./system_design_docs/DEPLOYMENT.md) | Setup and deployment |
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Framework | Next.js (App Router) | 16.1.4 |
+| UI | React | 19.2.3 |
+| Styling | Tailwind CSS | v4 |
+| Language | TypeScript (strict) | 5.x |
+| Browser Automation | Playwright | Latest |
+| Deployment | Vercel | - |
+
+---
+
+## License
+
+This project is a take-home assignment for Alma. All rights reserved.
+
+---
+
+## Contact
+
+For questions about this submission, please contact the repository owner.
