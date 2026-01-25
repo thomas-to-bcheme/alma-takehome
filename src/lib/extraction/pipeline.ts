@@ -5,7 +5,7 @@ import {
   type ExtractionError,
   PassportDataSchema,
   G28DataSchema,
-} from '@/types/extraction';
+} from '@/types';
 import { extractWithNuExtract, bufferToBase64, NuExtractError } from './nuextract-client';
 import { extractFromMRZ } from './mrz/parser';
 import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';

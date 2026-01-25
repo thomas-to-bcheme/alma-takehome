@@ -1,4 +1,4 @@
-import type { PassportData, ExtractionError } from '@/types/extraction';
+import type { PassportData, ExtractionError } from '@/types';
 
 /**
  * MRZ (Machine Readable Zone) Parser for TD3 format passports
@@ -11,7 +11,7 @@ import type { PassportData, ExtractionError } from '@/types/extraction';
 /**
  * Country code mapping from ISO 3166-1 alpha-3 to full names
  */
-const COUNTRY_CODES: Record<string, string> = {
+const COUNTRY_CODES: Readonly<Record<string, string>> = {
   USA: 'United States',
   GBR: 'United Kingdom',
   CAN: 'Canada',
@@ -65,10 +65,10 @@ const COUNTRY_CODES: Record<string, string> = {
  * Result of MRZ parsing attempt
  */
 export interface MRZParseResult {
-  success: boolean;
-  data: PassportData | null;
-  confidence: number;
-  errors: ExtractionError[];
+  readonly success: boolean;
+  readonly data: PassportData | null;
+  readonly confidence: number;
+  readonly errors: readonly ExtractionError[];
 }
 
 /**

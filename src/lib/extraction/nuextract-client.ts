@@ -12,20 +12,20 @@ import type { PassportTemplate, G28Template } from './templates';
  * NuExtract API request payload
  */
 interface NuExtractRequest {
-  text?: string;
-  image?: string; // base64 encoded
-  template: Record<string, string>;
+  readonly text?: string;
+  readonly image?: string; // base64 encoded
+  readonly template: Readonly<Record<string, string>>;
 }
 
 /**
  * NuExtract API response
  */
 interface NuExtractResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
+  readonly success: boolean;
+  readonly data?: T;
+  readonly error?: {
+    readonly code: string;
+    readonly message: string;
   };
 }
 
@@ -58,7 +58,7 @@ export async function extractWithNuExtract<T extends PassportTemplate | G28Templ
 
   const requestBody: NuExtractRequest = {
     image: imageBase64,
-    template: template as Record<string, string>,
+    template: template as Readonly<Record<string, string>>,
   };
 
   const controller = new AbortController();

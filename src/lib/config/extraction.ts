@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { NUEXTRACT_DEFAULTS } from '@/lib/constants';
 
 /**
  * Environment configuration schema for extraction services
@@ -7,7 +8,7 @@ const ExtractionConfigSchema = z.object({
   nuextract: z.object({
     apiUrl: z.string().url(),
     apiKey: z.string().min(1),
-    timeoutMs: z.number().int().positive().default(30000),
+    timeoutMs: z.number().int().positive().default(NUEXTRACT_DEFAULTS.TIMEOUT_MS),
   }),
 });
 
@@ -24,7 +25,7 @@ export function loadExtractionConfig(): ExtractionConfig {
       apiKey: process.env.NUEXTRACT_API_KEY,
       timeoutMs: process.env.NUEXTRACT_TIMEOUT_MS
         ? parseInt(process.env.NUEXTRACT_TIMEOUT_MS, 10)
-        : 30000,
+        : NUEXTRACT_DEFAULTS.TIMEOUT_MS,
     },
   };
 
