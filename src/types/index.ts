@@ -18,31 +18,60 @@ export interface DocumentFile {
 // Upload status
 export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
-// API response types
+// Extraction method (matches backend)
+export type ExtractionMethod = 'mrz' | 'nuextract' | 'combined';
+
+// API response types (aligned with backend ExtractApiResponse)
 export interface ExtractResponse {
   readonly success: boolean;
-  readonly message: string;
   readonly data?: ExtractedData;
-  readonly error?: string;
+  readonly error?: ApiError;
+  readonly warnings?: string[];
+}
+
+export interface ApiError {
+  readonly code: string;
+  readonly message: string;
+  readonly field?: string;
+  readonly details?: string;
 }
 
 export interface ExtractedData {
-  readonly passport?: PassportData;
+  readonly passport?: PassportDataWithMetadata;
   readonly g28?: G28Data;
 }
 
+// Passport data (aligned with backend PassportDataSchema)
 export interface PassportData {
-  readonly fullName?: string;
-  readonly dateOfBirth?: string;
-  readonly passportNumber?: string;
-  readonly nationality?: string;
-  readonly expirationDate?: string;
+  readonly documentType?: string | null;
+  readonly issuingCountry?: string | null;
+  readonly surname: string;
+  readonly givenNames: string;
+  readonly documentNumber?: string | null;
+  readonly nationality?: string | null;
+  readonly dateOfBirth?: string | null; // YYYY-MM-DD format
+  readonly sex?: 'M' | 'F' | 'X' | null;
+  readonly expirationDate?: string | null; // YYYY-MM-DD format
 }
 
+// Passport data with extraction metadata (for API responses)
+export interface PassportDataWithMetadata extends PassportData {
+  readonly extractionMethod: ExtractionMethod;
+  readonly confidence: number;
+}
+
+// G-28 form data (aligned with backend G28DataSchema)
 export interface G28Data {
-  readonly attorneyName?: string;
-  readonly firmName?: string;
-  readonly clientName?: string;
+  readonly attorneyName?: string | null;
+  readonly firmName?: string | null;
+  readonly street?: string | null;
+  readonly city?: string | null;
+  readonly state?: string | null;
+  readonly zipCode?: string | null;
+  readonly phone?: string | null;
+  readonly email?: string | null;
+  readonly clientName?: string | null;
+  readonly alienNumber?: string | null;
 }
 
 // App state for files
@@ -61,4 +90,9 @@ export interface AppStateContextValue extends AppState {
   setErrorMessage: (message: string | null) => void;
   setSuccessMessage: (message: string | null) => void;
   resetState: () => void;
+}
+
+// Helper to format full name from passport data
+export function formatFullName(passport: PassportData): string {
+  return `${passport.givenNames} ${passport.surname}`.trim();
 }

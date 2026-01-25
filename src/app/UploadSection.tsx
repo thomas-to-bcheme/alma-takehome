@@ -4,7 +4,8 @@ import { useCallback } from 'react';
 import { useAppState } from '@/context/AppStateContext';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Alert } from '@/components/ui';
 import { UploadZone, FilePreview, UploadProgress } from '@/components/upload';
-import { ACCEPTED_EXTENSIONS, ACCEPTED_EXTENSIONS_PDF_ONLY, ERROR_MESSAGES, ERROR_CODES } from '@/lib/constants';
+import { ACCEPTED_EXTENSIONS, ACCEPTED_EXTENSIONS_PDF_ONLY } from '@/lib/constants';
+import type { ExtractResponse } from '@/types';
 
 export function UploadSection(): React.JSX.Element {
   const {
@@ -46,7 +47,7 @@ export function UploadSection(): React.JSX.Element {
 
   const handleSubmit = useCallback(async () => {
     if (!passportFile) {
-      setErrorMessage(ERROR_MESSAGES[ERROR_CODES.MISSING_PASSPORT]);
+      setErrorMessage('Passport file is required');
       return;
     }
 
@@ -66,11 +67,13 @@ export function UploadSection(): React.JSX.Element {
         body: formData,
       });
 
-      const result = await response.json();
+      const result: ExtractResponse = await response.json();
 
       if (!response.ok || !result.success) {
         setUploadStatus('error');
-        setErrorMessage(result.message ?? ERROR_MESSAGES[ERROR_CODES.UPLOAD_FAILED]);
+        // Handle error object structure (aligned with backend)
+        const errorMsg = result.error?.message ?? 'Upload failed. Please try again';
+        setErrorMessage(errorMsg);
         return;
       }
 
@@ -79,7 +82,7 @@ export function UploadSection(): React.JSX.Element {
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
-      setErrorMessage(ERROR_MESSAGES[ERROR_CODES.UPLOAD_FAILED]);
+      setErrorMessage('Upload failed. Please try again');
     }
   }, [passportFile, g28File, setUploadStatus, setErrorMessage, setSuccessMessage]);
 
