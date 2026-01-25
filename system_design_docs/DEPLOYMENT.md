@@ -163,6 +163,29 @@ Playwright requires system dependencies. For Vercel deployment:
 npm install @sparticuz/chromium playwright-core
 ```
 
+### Platform Considerations & Decision
+
+**Initial Approach:**
+Vercel was evaluated as a lightweight deployment tool with server capabilities built on AWS for demonstration purposes.
+
+**Findings:**
+- Payment plans are required for additional security features and configuration overhead
+- Pro/Enterprise tiers needed for: longer function timeouts, increased memory limits, advanced security controls
+- These costs are not justified for a takehome exercise scope
+
+**Decision:**
+Vercel is **not recommended** for this project's deployment given the scope constraints. Instead:
+
+1. **Assumption:** Alma has an internal AWS deployment suite (ECS, Lambda, App Runner, etc.)
+2. **Frontend Preparation:** The Next.js frontend is cloud-agnostic and prepared for deployment on AWS or other providers
+3. **No AWS Wrapper:** Avoid Vercel/Netlify-style wrappers when direct cloud provider access is available
+
+**Recommended Production Path:**
+- AWS ECS/Fargate for containerized deployment (use Docker config below)
+- AWS Lambda + API Gateway for serverless API routes
+- S3 + CloudFront for static frontend assets
+- Or equivalent internal infrastructure at Alma
+
 ---
 
 ## Docker Deployment
