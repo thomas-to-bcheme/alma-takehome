@@ -25,6 +25,8 @@ export const ERROR_CODES = {
   SERVER_ERROR: 'SERVER_ERROR',
   EXTRACTION_FAILED: 'EXTRACTION_FAILED',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  UPLOAD_FAILED: 'UPLOAD_FAILED',
+  SERVER_ERROR: 'SERVER_ERROR',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -39,6 +41,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   [ERROR_CODES.SERVER_ERROR]: 'Server error. Please try again later',
   [ERROR_CODES.EXTRACTION_FAILED]: 'Could not extract data from document',
   [ERROR_CODES.INTERNAL_ERROR]: 'An unexpected error occurred',
+  [ERROR_CODES.UPLOAD_FAILED]: 'Upload failed. Please try again',
+  [ERROR_CODES.SERVER_ERROR]: 'Server error. Please try again later',
 } as const;
 
 // Success messages
