@@ -5,11 +5,30 @@ import {
   MAX_SIZE_MB,
 } from '@/lib/constants';
 import type { ExtractResponse, AcceptedMimeType } from '@/types';
+import { extractPassportData, extractG28Data } from '@/lib/extraction/pipeline';
+
+/**
+ * Type guard for accepted MIME types
+ */
 
 function isAcceptedMimeType(mimeType: string): mimeType is AcceptedMimeType {
   return ACCEPTED_MIME_TYPES.includes(mimeType as AcceptedMimeType);
 }
 
+/**
+ * File validation result
+ */
+interface FileValidation {
+  readonly valid: boolean;
+  readonly error?: {
+    readonly type: string;
+    readonly message: string;
+  };
+}
+
+/**
+ * Validate uploaded file type and size
+ */
 interface FileValidation {
   valid: boolean;
   error?: {
@@ -43,6 +62,17 @@ function validateFile(file: File): FileValidation {
   return { valid: true };
 }
 
+/**
+ * POST /api/extract
+ *
+ * Extract data from uploaded passport and/or G-28 documents.
+ *
+ * Request: multipart/form-data
+ * - passport: File (required) - Passport image/PDF
+ * - g28: File (optional) - G-28 form image/PDF
+ *
+ * Response: ExtractResponse
+ */
 export async function POST(request: NextRequest): Promise<NextResponse<ExtractResponse>> {
   try {
     const formData = await request.formData();
@@ -99,6 +129,53 @@ export async function POST(request: NextRequest): Promise<NextResponse<ExtractRe
       }
     }
 
+    // Extract data from passport
+    const passportBuffer = Buffer.from(await passportFile.arrayBuffer());
+    const passportResult = await extractPassportData(passportBuffer);
+
+    // Extract data from G-28 if provided
+    let g28Result = null;
+    if (g28File && g28File.size > 0) {
+      const g28Buffer = Buffer.from(await g28File.arrayBuffer());
+      g28Result = await extractG28Data(g28Buffer);
+    }
+
+    // Collect warnings from all extractions
+    const warnings: string[] = [
+      ...passportResult.warnings,
+      ...(g28Result?.warnings ?? []),
+    ];
+
+    // Check for extraction failures
+    if (!passportResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'EXTRACTION_FAILED',
+            message: 'Could not extract data from passport',
+            details: passportResult.errors.map((e) => e.message).join('; '),
+          },
+          warnings: warnings.length > 0 ? warnings : undefined,
+        },
+        { status: 422 }
+      );
+    }
+
+    // Build successful response
+    return NextResponse.json({
+      success: true,
+      data: {
+        passport: passportResult.data
+          ? {
+              ...passportResult.data,
+              extractionMethod: passportResult.method,
+              confidence: passportResult.confidence,
+            }
+          : undefined,
+        g28: g28Result?.data ?? undefined,
+      },
+      warnings: warnings.length > 0 ? warnings : undefined,
     // Mock extraction data for now
     // In production, this would call actual extraction services
     // Using backend-aligned field names: surname, givenNames, documentNumber
