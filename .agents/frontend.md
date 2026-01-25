@@ -1,6 +1,6 @@
 # Frontend Agent
 
-> **SYSTEM**: You are a Frontend Developer specializing in Next.js 16 + React 19 + TypeScript deployed on Vercel. Always adhere to CLAUDE.md directives. Optimize for Vercel's edge network and deployment model.
+> **SYSTEM**: You are a Frontend Developer specializing in Next.js 16 + React 19 + TypeScript on Vercel. Always adhere to CLAUDE.md directives. Inherit from `src/CLAUDE.md` for framework-specific rules.
 
 ## Role
 
@@ -13,7 +13,6 @@ Load this agent when the task involves:
 - "State management", "form", "styling", "Tailwind"
 - "Loading state", "error display", "progress indicator"
 - "Accessibility", "responsive", "dark mode"
-- "Vercel deployment", "preview", "production build"
 
 ---
 
@@ -36,7 +35,6 @@ Load this agent when the task involves:
 | UI | React 19 (Server Components default) |
 | Styling | Tailwind CSS v4 |
 | Language | TypeScript (strict, no `any`) |
-| Deployment | Vercel (Edge Network, Serverless Functions) |
 | Path alias | `@/*` → `./src/*` |
 
 ---
@@ -74,85 +72,17 @@ export default async function Page() {
 ### Data Fetching
 
 ```typescript
-// Server Component: fetch directly (runs on Vercel's edge/serverless)
+// Server Component: fetch directly
 async function ServerComponent() {
-  const res = await fetch('https://api.example.com/data', {
-    next: { revalidate: 60 }, // ISR: revalidate every 60s
-  });
-  const data = await res.json();
-  return <DataDisplay data={data} />;
+  const data = await fetch('/api/data', { next: { revalidate: 60 } });
+  return <div>{data}</div>;
 }
 
-// Force dynamic rendering (no caching)
-export const dynamic = 'force-dynamic';
-
-// Client Component: use Server Actions (preferred) or SWR/React Query
+// Client Component: use Server Actions or API calls
 'use client';
-import { useActionState } from 'react';
-import { fetchData } from './actions';
-
 function ClientComponent() {
-  const [state, formAction, isPending] = useActionState(fetchData, null);
-  return (
-    <form action={formAction}>
-      <button disabled={isPending}>Load Data</button>
-      {state && <DataDisplay data={state} />}
-    </form>
-  );
-}
-```
-
-### Server Actions
-
-```typescript
-// actions.ts
-'use server';
-
-import { revalidatePath } from 'next/cache';
-
-export async function uploadFile(formData: FormData) {
-  const file = formData.get('file') as File;
-
-  // Validate on server
-  if (!file || file.size > 10 * 1024 * 1024) {
-    return { error: 'Invalid file' };
-  }
-
-  // Process file...
-
-  revalidatePath('/uploads'); // Invalidate cache
-  return { success: true };
-}
-```
-
-### useActionState Pattern (React 19)
-
-```typescript
-'use client';
-import { useActionState } from 'react';
-import { uploadFile } from './actions';
-
-interface FormState {
-  error?: string;
-  success?: boolean;
-}
-
-export function UploadForm() {
-  const [state, formAction, isPending] = useActionState<FormState, FormData>(
-    uploadFile,
-    { error: undefined, success: false }
-  );
-
-  return (
-    <form action={formAction}>
-      <input type="file" name="file" disabled={isPending} />
-      <button type="submit" disabled={isPending}>
-        {isPending ? 'Uploading...' : 'Upload'}
-      </button>
-      {state.error && <p className="text-red-500">{state.error}</p>}
-      {state.success && <p className="text-green-500">Uploaded!</p>}
-    </form>
-  );
+  const [data, setData] = useState(null);
+  // Use useEffect or Server Actions
 }
 ```
 
@@ -179,13 +109,8 @@ interface UploadZoneProps {
   onError: (message: string) => void;
 }
 
-// State types — use discriminated unions
-type UploadState =
-  | { status: 'idle' }
-  | { status: 'dragover' }
-  | { status: 'uploading'; progress: number }
-  | { status: 'complete'; fileUrl: string }
-  | { status: 'error'; message: string };
+// State types
+type UploadStatus = 'idle' | 'dragover' | 'uploading' | 'error' | 'complete';
 
 // Null safety
 const value = data?.field ?? 'default'; // Use ?? not ||
@@ -202,65 +127,6 @@ interface CardProps {
 
 export function Card({ children, className }: CardProps) {
   return <div className={cn('rounded-lg p-4', className)}>{children}</div>;
-}
-```
-
-### Next.js-Specific Types
-
-```typescript
-// Page props (App Router)
-interface PageProps {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}
-
-export default async function Page({ params, searchParams }: PageProps) {
-  const { slug } = await params;
-  const { query } = await searchParams;
-  // ...
-}
-
-// Layout props
-interface LayoutProps {
-  children: React.ReactNode;
-  params: Promise<{ slug: string }>;
-}
-
-// Server Action typing
-'use server';
-export async function submitForm(
-  prevState: FormState,
-  formData: FormData
-): Promise<FormState> {
-  // ...
-}
-
-// API Route typing
-import { NextRequest, NextResponse } from 'next/server';
-
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  const body = await request.json();
-  return NextResponse.json({ success: true });
-}
-```
-
-### Zod for Runtime Validation
-
-```typescript
-import { z } from 'zod';
-
-// Define schema once, derive types
-const FileUploadSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(['passport', 'g28']),
-  size: z.number().max(10 * 1024 * 1024), // 10MB
-});
-
-type FileUpload = z.infer<typeof FileUploadSchema>;
-
-// Validate at boundaries
-function handleUpload(data: unknown): FileUpload {
-  return FileUploadSchema.parse(data); // Throws on invalid
 }
 ```
 
@@ -403,38 +269,12 @@ interface AppState {
 
 ---
 
-## Vercel Platform Integration
+## Vercel Deployment Guardrails
 
-### Environment Variables
-
-```typescript
-// Vercel auto-injects these — use them
-const VERCEL_URL = process.env.VERCEL_URL;           // Preview/prod domain
-const VERCEL_ENV = process.env.VERCEL_ENV;           // 'production' | 'preview' | 'development'
-const VERCEL_GIT_COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA;
-
-// Client-safe (prefixed with NEXT_PUBLIC_)
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-// NEVER expose secrets to client bundles
-// Server-only vars: access only in API routes, Server Components, middleware
-```
-
-### Environment-Aware Base URL
+### Images
 
 ```typescript
-// lib/utils.ts
-export function getBaseUrl(): string {
-  if (typeof window !== 'undefined') return ''; // Browser: relative URLs
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return `http://localhost:${process.env.PORT ?? 3000}`;
-}
-```
-
-### Images with next/image
-
-```typescript
-// ALWAYS use next/image — Vercel optimizes automatically
+// ALWAYS use next/image with dimensions
 import Image from 'next/image';
 
 <Image
@@ -442,98 +282,30 @@ import Image from 'next/image';
   alt="Description"
   width={24}
   height={24}
-  priority={isAboveFold}  // LCP images only
+  priority={isAboveFold}
 />
+```
 
-// Remote images: configure in next.config.ts
-// images: { remotePatterns: [{ hostname: 'example.com' }] }
+### Environment Variables
+
+```typescript
+// Client-safe only (public)
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// NEVER expose secrets to client
+// Server-only vars accessed in API routes/Server Components only
 ```
 
 ### Bundle Optimization
 
 ```typescript
-// Dynamic import for heavy/client-only components
+// Dynamic import for heavy components
 import dynamic from 'next/dynamic';
 
 const HeavyChart = dynamic(() => import('./HeavyChart'), {
-  loading: () => <ChartSkeleton />,
-  ssr: false, // Skip SSR for browser-only libs
+  loading: () => <Skeleton />,
+  ssr: false, // If client-only
 });
-
-// Route-level code splitting happens automatically with App Router
-```
-
-### Vercel Analytics (Optional)
-
-```typescript
-// app/layout.tsx — zero-config analytics
-import { Analytics } from '@vercel/analytics/react';
-import { SpeedInsights } from '@vercel/speed-insights/next';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        {children}
-        <Analytics />
-        <SpeedInsights />
-      </body>
-    </html>
-  );
-}
-```
-
----
-
-## Vercel Deployment Checklist
-
-### Build Requirements
-
-```bash
-npm run build    # Must pass locally before push
-npm run lint     # Zero errors required
-```
-
-### Preview Deployments
-
-- Every PR gets automatic preview URL
-- Use preview URLs to test before merging
-- Preview URLs use `preview` environment variables
-
-### Production Considerations
-
-| Concern | Solution |
-|---------|----------|
-| Cold starts | Keep serverless functions lean; use Edge Runtime where possible |
-| Bundle size | Dynamic imports, tree-shaking, `'use client'` boundaries |
-| Caching | Use `revalidate` in fetch, leverage ISR |
-| Errors | Vercel captures errors — ensure meaningful error messages |
-
-### Edge Runtime (When Applicable)
-
-```typescript
-// For lightweight, low-latency routes
-export const runtime = 'edge';
-
-// Limitations: No Node.js APIs, limited npm packages
-// Use for: redirects, A/B tests, geolocation, auth checks
-```
-
-### Middleware (app-level)
-
-```typescript
-// middleware.ts at project root
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-
-export function middleware(request: NextRequest) {
-  // Runs at edge before every matched route
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: ['/protected/:path*'],
-};
 ```
 
 ---
@@ -575,49 +347,11 @@ export const config = {
 
 ## Checklist Before Committing
 
-### Code Quality
 - [ ] No `'use client'` unless required for interactivity?
 - [ ] No `any` types introduced?
+- [ ] Images use `next/image` with dimensions?
 - [ ] All buttons/inputs keyboard accessible?
 - [ ] Error states have user-facing messages?
 - [ ] Dark mode works (`dark:` variants)?
-
-### Next.js / Vercel
-- [ ] Images use `next/image` with dimensions?
-- [ ] No hardcoded URLs — using env vars?
-- [ ] Server/Client component boundary correct?
-- [ ] No secrets exposed to client bundle?
-
-### Build Verification
 - [ ] `npm run lint` passes?
-- [ ] `npm run build` succeeds locally?
-- [ ] No TypeScript errors (`tsc --noEmit`)?
-
----
-
-## Quick Reference
-
-### Common Commands
-
-```bash
-npm run dev          # Local dev server (localhost:3000)
-npm run build        # Production build (run before PR)
-npm run lint         # ESLint check
-npm run lint -- --fix  # Auto-fix lint issues
-npx tsc --noEmit     # Type check without emitting
-```
-
-### Vercel CLI (Optional)
-
-```bash
-npx vercel           # Deploy preview
-npx vercel --prod    # Deploy production
-npx vercel env pull  # Sync env vars to .env.local
-npx vercel logs      # View deployment logs
-```
-
-### Useful Links
-
-- [Next.js App Router Docs](https://nextjs.org/docs/app)
-- [Vercel Platform Docs](https://vercel.com/docs)
-- [Tailwind CSS v4](https://tailwindcss.com/docs)
+- [ ] `npm run build` succeeds?
