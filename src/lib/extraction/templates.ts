@@ -39,6 +39,9 @@ export const G28_TEMPLATE = {
   email: '',
   clientName: '',
   barNumber: '',
+  licensingAuthority: '',
+  clientPhone: '',
+  clientEmail: '',
 } as const;
 
 export type G28Template = typeof G28_TEMPLATE;

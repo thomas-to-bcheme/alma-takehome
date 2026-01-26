@@ -1,14 +1,19 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
-import type { AppState, AppStateContextValue, UploadStatus, ExtractedData } from '@/types';
+import type { AppState, AppStateContextValue, UploadStatus, ExtractedData, DocumentUploadState } from '@/types';
+
+const initialDocumentUploadState: DocumentUploadState = {
+  status: 'idle',
+  errorMessage: null,
+  successMessage: null,
+};
 
 const initialState: AppState = {
   passportFile: null,
   g28File: null,
-  uploadStatus: 'idle',
-  errorMessage: null,
-  successMessage: null,
+  passportUpload: initialDocumentUploadState,
+  g28Upload: initialDocumentUploadState,
   extractedData: null,
 };
 
@@ -21,55 +26,75 @@ interface AppStateProviderProps {
 export function AppStateProvider({ children }: AppStateProviderProps): React.JSX.Element {
   const [passportFile, setPassportFileState] = useState<File | null>(initialState.passportFile);
   const [g28File, setG28FileState] = useState<File | null>(initialState.g28File);
-  const [uploadStatus, setUploadStatusState] = useState<UploadStatus>(initialState.uploadStatus);
-  const [errorMessage, setErrorMessageState] = useState<string | null>(initialState.errorMessage);
-  const [successMessage, setSuccessMessageState] = useState<string | null>(initialState.successMessage);
+  const [passportUpload, setPassportUploadState] = useState<DocumentUploadState>(initialState.passportUpload);
+  const [g28Upload, setG28UploadState] = useState<DocumentUploadState>(initialState.g28Upload);
   const [extractedData, setExtractedDataState] = useState<ExtractedData | null>(initialState.extractedData);
 
   const setPassportFile = useCallback((file: File | null) => {
     setPassportFileState(file);
-    // Clear messages when file changes
-    setErrorMessageState(null);
-    setSuccessMessageState(null);
-    setUploadStatusState('idle');
+    // Reset passport upload state when file changes
+    setPassportUploadState(initialDocumentUploadState);
   }, []);
 
   const setG28File = useCallback((file: File | null) => {
     setG28FileState(file);
-    // Clear messages when file changes
-    setErrorMessageState(null);
-    setSuccessMessageState(null);
-    setUploadStatusState('idle');
+    // Reset G-28 upload state when file changes
+    setG28UploadState(initialDocumentUploadState);
   }, []);
 
-  const setUploadStatus = useCallback((status: UploadStatus) => {
-    setUploadStatusState(status);
+  const setPassportUploadStatus = useCallback((status: UploadStatus) => {
+    setPassportUploadState((prev) => ({ ...prev, status }));
   }, []);
 
-  const setErrorMessage = useCallback((message: string | null) => {
-    setErrorMessageState(message);
-    if (message) {
-      setSuccessMessageState(null);
+  const setPassportErrorMessage = useCallback((message: string | null) => {
+    setPassportUploadState((prev) => ({
+      ...prev,
+      errorMessage: message,
+      successMessage: message ? null : prev.successMessage,
+    }));
+  }, []);
+
+  const setPassportSuccessMessage = useCallback((message: string | null) => {
+    setPassportUploadState((prev) => ({
+      ...prev,
+      successMessage: message,
+      errorMessage: message ? null : prev.errorMessage,
+    }));
+  }, []);
+
+  const setG28UploadStatus = useCallback((status: UploadStatus) => {
+    setG28UploadState((prev) => ({ ...prev, status }));
+  }, []);
+
+  const setG28ErrorMessage = useCallback((message: string | null) => {
+    setG28UploadState((prev) => ({
+      ...prev,
+      errorMessage: message,
+      successMessage: message ? null : prev.successMessage,
+    }));
+  }, []);
+
+  const setG28SuccessMessage = useCallback((message: string | null) => {
+    setG28UploadState((prev) => ({
+      ...prev,
+      successMessage: message,
+      errorMessage: message ? null : prev.errorMessage,
+    }));
+  }, []);
+
+  const setExtractedData = useCallback((data: ExtractedData | null | ((prev: ExtractedData | null) => ExtractedData | null)) => {
+    if (typeof data === 'function') {
+      setExtractedDataState(data);
+    } else {
+      setExtractedDataState(data);
     }
-  }, []);
-
-  const setSuccessMessage = useCallback((message: string | null) => {
-    setSuccessMessageState(message);
-    if (message) {
-      setErrorMessageState(null);
-    }
-  }, []);
-
-  const setExtractedData = useCallback((data: ExtractedData | null) => {
-    setExtractedDataState(data);
   }, []);
 
   const resetState = useCallback(() => {
     setPassportFileState(null);
     setG28FileState(null);
-    setUploadStatusState('idle');
-    setErrorMessageState(null);
-    setSuccessMessageState(null);
+    setPassportUploadState(initialDocumentUploadState);
+    setG28UploadState(initialDocumentUploadState);
     setExtractedDataState(null);
   }, []);
 
@@ -77,30 +102,34 @@ export function AppStateProvider({ children }: AppStateProviderProps): React.JSX
     () => ({
       passportFile,
       g28File,
-      uploadStatus,
-      errorMessage,
-      successMessage,
+      passportUpload,
+      g28Upload,
       extractedData,
       setPassportFile,
       setG28File,
-      setUploadStatus,
-      setErrorMessage,
-      setSuccessMessage,
+      setPassportUploadStatus,
+      setPassportErrorMessage,
+      setPassportSuccessMessage,
+      setG28UploadStatus,
+      setG28ErrorMessage,
+      setG28SuccessMessage,
       setExtractedData,
       resetState,
     }),
     [
       passportFile,
       g28File,
-      uploadStatus,
-      errorMessage,
-      successMessage,
+      passportUpload,
+      g28Upload,
       extractedData,
       setPassportFile,
       setG28File,
-      setUploadStatus,
-      setErrorMessage,
-      setSuccessMessage,
+      setPassportUploadStatus,
+      setPassportErrorMessage,
+      setPassportSuccessMessage,
+      setG28UploadStatus,
+      setG28ErrorMessage,
+      setG28SuccessMessage,
       setExtractedData,
       resetState,
     ]

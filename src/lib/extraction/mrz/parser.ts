@@ -75,7 +75,7 @@ export interface MRZParseResult {
  * Calculate MRZ check digit using the ICAO 9303 algorithm
  * Weights cycle through 7, 3, 1
  */
-function calculateCheckDigit(data: string): number {
+export function calculateCheckDigit(data: string): number {
   const weights = [7, 3, 1];
   let sum = 0;
 
@@ -112,7 +112,7 @@ function validateCheckDigit(data: string, checkDigit: string): boolean {
  * Convert MRZ date (YYMMDD) to ISO format (YYYY-MM-DD)
  * Assumes dates in the past century for DOB, future for expiration
  */
-function parseMRZDate(mrzDate: string, isExpiration: boolean): string {
+export function parseMRZDate(mrzDate: string, isExpiration: boolean): string {
   if (mrzDate.length !== 6 || !/^\d{6}$/.test(mrzDate)) {
     return '';
   }

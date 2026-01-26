@@ -38,7 +38,7 @@ import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
  * Normalize a date string to YYYY-MM-DD format
  * Handles various input formats: YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, etc.
  */
-function normalizeDate(dateStr: string | null | undefined): string | null {
+export function normalizeDate(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
 
   // Already in correct format
@@ -70,7 +70,7 @@ function normalizeDate(dateStr: string | null | undefined): string | null {
 /**
  * Normalize sex field to M/F/X
  */
-function normalizeSex(sex: string | null | undefined): 'M' | 'F' | 'X' | null {
+export function normalizeSex(sex: string | null | undefined): 'M' | 'F' | 'X' | null {
   if (!sex) return null;
 
   const normalized = sex.toUpperCase().trim();
@@ -275,6 +275,9 @@ function mapClaudeToG28Data(claudeData: G28ClaudeData): G28Data {
     // Eligibility flags
     isAttorney: eligibility.is_attorney,
     isAccreditedRep: eligibility.is_accredited_rep,
+    // Client contact fields
+    clientPhone: client.phone || '',
+    clientEmail: client.email || '',
   };
 }
 
@@ -299,8 +302,10 @@ export async function extractG28Data(
       const claudeResult = await extractG28WithClaude(fileBuffer, mimeType);
 
       if (claudeResult.success && claudeResult.data) {
+        console.log('[G28 Extraction] Claude Vision result:', JSON.stringify(claudeResult.data, null, 2));
         // Map Claude data format to G28Data
         const g28Data = mapClaudeToG28Data(claudeResult.data);
+        console.log('[G28 Extraction] Mapped G28Data:', JSON.stringify(g28Data, null, 2));
 
         // Validate with Zod
         const validation = G28DataSchema.safeParse(g28Data);
@@ -337,6 +342,7 @@ export async function extractG28Data(
   try {
     const base64 = bufferToBase64(fileBuffer);
     const rawData = await extractWithNuExtract(base64, G28_TEMPLATE);
+    console.log('[G28 Extraction] NuExtract raw result:', JSON.stringify(rawData, null, 2));
 
     // Validate with Zod
     const validation = G28DataSchema.safeParse(rawData);

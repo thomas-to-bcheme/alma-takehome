@@ -50,16 +50,16 @@ Based on the Product Requirements Document (PRD), the following deliverables mus
 
 ### 1. File Upload Interface
 
-- [ ] Web interface for document upload (Next.js/React)
-- [ ] Support PDF and image formats (JPEG, PNG)
-- [ ] Drag-and-drop functionality
-- [ ] File validation (type, size)
+- [x] Web interface for document upload (Next.js/React)
+- [x] Support PDF and image formats (JPEG, PNG)
+- [x] Drag-and-drop functionality
+- [x] File validation (type, size)
 
 ### 2. Data Extraction
 
-- [ ] **MRZ Extraction** - Parse Machine Readable Zone from passports
-- [ ] **OCR Processing** - Extract text from documents
-- [ ] **LLM-Based Extraction** - Vision model fallback for complex cases
+- [x] **MRZ Extraction** - Parse Machine Readable Zone from passports
+- [x] **OCR Processing** - Extract text from documents
+- [x] **LLM-Based Extraction** - Vision model fallback for complex cases
 
 **Fields to Extract:**
 
@@ -70,24 +70,24 @@ Based on the Product Requirements Document (PRD), the following deliverables mus
 
 ### 3. Form Population
 
-- [ ] Navigate to target form URL via Playwright
-- [ ] Accurately fill fields with extracted data
-- [ ] Handle different input types (text, date, select)
-- [ ] **Do NOT submit or digitally sign the form**
+- [x] Navigate to target form URL via Playwright
+- [x] Accurately fill fields with extracted data
+- [x] Handle different input types (text, date, select)
+- [x] **Do NOT submit or digitally sign the form**
 
 ### 4. Robustness Requirements
 
-- [ ] Handle passports from various countries
-- [ ] Tolerate minor document formatting variations
-- [ ] Graceful handling of missing data
-- [ ] No hardcoded field positions or values
+- [x] Handle passports from various countries
+- [x] Tolerate minor document formatting variations
+- [x] Graceful handling of missing data
+- [x] No hardcoded field positions or values
 
 ### 5. Deliverables Checklist
 
-- [ ] Local web interface with minimal setup
-- [ ] Working source code in GitHub repository
-- [ ] Clear setup instructions
-- [ ] Screen recording of workflow (Loom)
+- [x] Local web interface with minimal setup
+- [x] Working source code in GitHub repository
+- [x] Clear setup instructions
+- [ ] Screen recording of workflow (Loom) - **Pending**
 
 ---
 
@@ -224,6 +224,29 @@ Open http://localhost:3000
 | `npm run build` | Production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run unit tests |
+| `npm run test:watch` | Run tests in watch mode |
+
+### Docker Services
+
+The backend extraction and automation services run in Docker containers.
+
+```bash
+# Start all backend services
+docker compose up -d
+
+# Check service health
+docker compose ps
+
+# View logs
+docker compose logs -f
+```
+
+| Service | Port | Health Check |
+|---------|------|--------------|
+| passporteye | 8000 | http://localhost:8000/health |
+| g28-extraction | 8001 | http://localhost:8001/health |
+| form-automation | 8002 | http://localhost:8002/health |
 
 ---
 

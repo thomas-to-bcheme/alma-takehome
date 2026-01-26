@@ -11,19 +11,23 @@ export function UploadSection(): React.JSX.Element {
   const {
     passportFile,
     g28File,
-    uploadStatus,
-    errorMessage,
-    successMessage,
+    passportUpload,
+    g28Upload,
     setPassportFile,
     setG28File,
-    setUploadStatus,
-    setErrorMessage,
-    setSuccessMessage,
+    setPassportUploadStatus,
+    setPassportErrorMessage,
+    setPassportSuccessMessage,
+    setG28UploadStatus,
+    setG28ErrorMessage,
+    setG28SuccessMessage,
     setExtractedData,
   } = useAppState();
 
-  const isUploading = uploadStatus === 'uploading';
+  const isPassportUploading = passportUpload.status === 'uploading';
+  const isG28Uploading = g28Upload.status === 'uploading';
   const previousPassportRef = useRef<File | null>(null);
+  const previousG28Ref = useRef<File | null>(null);
 
   const handlePassportSelect = useCallback(
     (file: File) => {
@@ -39,29 +43,33 @@ export function UploadSection(): React.JSX.Element {
     [setG28File]
   );
 
-  const handleError = useCallback(
+  const handlePassportError = useCallback(
     (message: string) => {
-      setErrorMessage(message);
+      setPassportErrorMessage(message);
     },
-    [setErrorMessage]
+    [setPassportErrorMessage]
   );
 
-  const handleSubmit = useCallback(async () => {
+  const handleG28Error = useCallback(
+    (message: string) => {
+      setG28ErrorMessage(message);
+    },
+    [setG28ErrorMessage]
+  );
+
+  const handlePassportSubmit = useCallback(async () => {
     if (!passportFile) {
-      setErrorMessage('Passport file is required');
+      setPassportErrorMessage('Passport file is required');
       return;
     }
 
-    setUploadStatus('uploading');
-    setErrorMessage(null);
-    setSuccessMessage(null);
+    setPassportUploadStatus('uploading');
+    setPassportErrorMessage(null);
+    setPassportSuccessMessage(null);
 
     try {
       const formData = new FormData();
       formData.append('passport', passportFile);
-      if (g28File) {
-        formData.append('g28', g28File);
-      }
 
       const response = await fetch('/api/extract', {
         method: 'POST',
@@ -71,34 +79,89 @@ export function UploadSection(): React.JSX.Element {
       const result: ExtractResponse = await response.json();
 
       if (!response.ok || !result.success) {
-        setUploadStatus('error');
-        // Handle error object structure (aligned with backend)
-        const errorMsg = result.error?.message ?? 'Upload failed. Please try again';
-        setErrorMessage(errorMsg);
+        setPassportUploadStatus('error');
+        const errorMsg = result.error?.message ?? 'Passport extraction failed. Please try again';
+        setPassportErrorMessage(errorMsg);
         return;
       }
 
-      // Store extracted data for form population
+      // Store extracted passport data
       if (result.data) {
-        setExtractedData(result.data);
+        setExtractedData((prev) => ({
+          ...prev,
+          passport: result.data?.passport,
+        }));
       }
 
-      setUploadStatus('success');
-      setSuccessMessage('Passport processed successfully. Data extraction complete.');
+      setPassportUploadStatus('success');
+      setPassportSuccessMessage('Passport processed successfully. Data extraction complete.');
     } catch (error) {
-      console.error('Upload error:', error);
-      setUploadStatus('error');
-      setErrorMessage('Upload failed. Please try again');
+      console.error('Passport upload error:', error);
+      setPassportUploadStatus('error');
+      setPassportErrorMessage('Passport extraction failed. Please try again');
     }
-  }, [passportFile, g28File, setUploadStatus, setErrorMessage, setSuccessMessage, setExtractedData]);
+  }, [passportFile, setPassportUploadStatus, setPassportErrorMessage, setPassportSuccessMessage, setExtractedData]);
+
+  const handleG28Submit = useCallback(async () => {
+    if (!g28File) {
+      setG28ErrorMessage('G-28 file is required');
+      return;
+    }
+
+    setG28UploadStatus('uploading');
+    setG28ErrorMessage(null);
+    setG28SuccessMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('g28', g28File);
+
+      const response = await fetch('/api/extract-g28', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result: ExtractResponse = await response.json();
+
+      if (!response.ok || !result.success) {
+        setG28UploadStatus('error');
+        const errorMsg = result.error?.message ?? 'G-28 extraction failed. Please try again';
+        setG28ErrorMessage(errorMsg);
+        return;
+      }
+
+      // Store extracted G-28 data
+      if (result.data) {
+        setExtractedData((prev) => ({
+          ...prev,
+          g28: result.data?.g28,
+        }));
+      }
+
+      setG28UploadStatus('success');
+      setG28SuccessMessage('G-28 processed successfully. Data extraction complete.');
+    } catch (error) {
+      console.error('G-28 upload error:', error);
+      setG28UploadStatus('error');
+      setG28ErrorMessage('G-28 extraction failed. Please try again');
+    }
+  }, [g28File, setG28UploadStatus, setG28ErrorMessage, setG28SuccessMessage, setExtractedData]);
 
   // Auto-extract when passport file changes
   useEffect(() => {
-    if (passportFile && passportFile !== previousPassportRef.current && uploadStatus === 'idle') {
+    if (passportFile && passportFile !== previousPassportRef.current && passportUpload.status === 'idle') {
       previousPassportRef.current = passportFile;
-      handleSubmit();
+      handlePassportSubmit();
     }
-  }, [passportFile, uploadStatus, handleSubmit]);
+  }, [passportFile, passportUpload.status, handlePassportSubmit]);
+
+  // Auto-extract when G-28 file changes
+  useEffect(() => {
+    if (g28File && g28File !== previousG28Ref.current && g28Upload.status === 'idle') {
+      previousG28Ref.current = g28File;
+      handleG28Submit();
+    }
+  }, [g28File, g28Upload.status, handleG28Submit]);
 
   return (
     <Card className="w-full">
@@ -110,16 +173,6 @@ export function UploadSection(): React.JSX.Element {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Error message */}
-        {errorMessage && (
-          <Alert variant="error">{errorMessage}</Alert>
-        )}
-
-        {/* Success message */}
-        {successMessage && (
-          <Alert variant="success">{successMessage}</Alert>
-        )}
-
         {/* Passport upload */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -131,22 +184,32 @@ export function UploadSection(): React.JSX.Element {
             </span>
           </div>
 
+          {/* Passport error message */}
+          {passportUpload.errorMessage && (
+            <Alert variant="error">{passportUpload.errorMessage}</Alert>
+          )}
+
+          {/* Passport success message */}
+          {passportUpload.successMessage && (
+            <Alert variant="success">{passportUpload.successMessage}</Alert>
+          )}
+
           {passportFile ? (
             <>
               <FilePreview
                 file={passportFile}
                 onRemove={() => setPassportFile(null)}
-                disabled={isUploading}
+                disabled={isPassportUploading}
               />
-              <UploadProgress status={uploadStatus} documentLabel="Passport" />
+              <UploadProgress status={passportUpload.status} documentLabel="Passport" />
             </>
           ) : (
             <UploadZone
               documentType="passport"
               accept={ACCEPTED_EXTENSIONS}
               onFileSelect={handlePassportSelect}
-              onError={handleError}
-              disabled={isUploading}
+              onError={handlePassportError}
+              disabled={isPassportUploading}
               hasFile={false}
             />
           )}
@@ -163,19 +226,32 @@ export function UploadSection(): React.JSX.Element {
             </span>
           </div>
 
+          {/* G-28 error message */}
+          {g28Upload.errorMessage && (
+            <Alert variant="error">{g28Upload.errorMessage}</Alert>
+          )}
+
+          {/* G-28 success message */}
+          {g28Upload.successMessage && (
+            <Alert variant="success">{g28Upload.successMessage}</Alert>
+          )}
+
           {g28File ? (
-            <FilePreview
-              file={g28File}
-              onRemove={() => setG28File(null)}
-              disabled={isUploading}
-            />
+            <>
+              <FilePreview
+                file={g28File}
+                onRemove={() => setG28File(null)}
+                disabled={isG28Uploading}
+              />
+              <UploadProgress status={g28Upload.status} documentLabel="G-28" />
+            </>
           ) : (
             <UploadZone
               documentType="g28"
               accept={ACCEPTED_EXTENSIONS_PDF_ONLY}
               onFileSelect={handleG28Select}
-              onError={handleError}
-              disabled={isUploading}
+              onError={handleG28Error}
+              disabled={isG28Uploading}
               hasFile={false}
             />
           )}

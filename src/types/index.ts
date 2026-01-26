@@ -31,6 +31,13 @@ export interface DocumentFile {
 
 export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 
+// Per-document upload state for independent tracking
+export interface DocumentUploadState {
+  readonly status: UploadStatus;
+  readonly errorMessage: string | null;
+  readonly successMessage: string | null;
+}
+
 // =============================================================================
 // EXTRACTION TYPES
 // =============================================================================
@@ -82,6 +89,9 @@ export const G28DataSchema = z.object({
   isAccreditedRep: z.boolean().optional(),
   organizationName: z.string().optional(),
   accreditationDate: z.string().optional(),
+  // Client contact fields from G-28
+  clientPhone: z.string().optional(),
+  clientEmail: z.string().optional(),
 });
 
 export type G28Data = z.infer<typeof G28DataSchema>;
@@ -149,19 +159,21 @@ export interface FileValidation {
 export interface AppState {
   readonly passportFile: File | null;
   readonly g28File: File | null;
-  readonly uploadStatus: UploadStatus;
-  readonly errorMessage: string | null;
-  readonly successMessage: string | null;
+  readonly passportUpload: DocumentUploadState;
+  readonly g28Upload: DocumentUploadState;
   readonly extractedData: ExtractedData | null;
 }
 
 export interface AppStateContextValue extends AppState {
   setPassportFile: (file: File | null) => void;
   setG28File: (file: File | null) => void;
-  setUploadStatus: (status: UploadStatus) => void;
-  setErrorMessage: (message: string | null) => void;
-  setSuccessMessage: (message: string | null) => void;
-  setExtractedData: (data: ExtractedData | null) => void;
+  setPassportUploadStatus: (status: UploadStatus) => void;
+  setPassportErrorMessage: (message: string | null) => void;
+  setPassportSuccessMessage: (message: string | null) => void;
+  setG28UploadStatus: (status: UploadStatus) => void;
+  setG28ErrorMessage: (message: string | null) => void;
+  setG28SuccessMessage: (message: string | null) => void;
+  setExtractedData: (data: ExtractedData | null | ((prev: ExtractedData | null) => ExtractedData | null)) => void;
   resetState: () => void;
 }
 
