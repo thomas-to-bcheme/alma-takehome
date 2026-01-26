@@ -84,7 +84,7 @@ export function UploadSection(): React.JSX.Element {
       }
 
       setUploadStatus('success');
-      setSuccessMessage('Documents processed successfully. Data extraction complete.');
+      setSuccessMessage('Passport processed successfully. Data extraction complete.');
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
@@ -132,11 +132,14 @@ export function UploadSection(): React.JSX.Element {
           </div>
 
           {passportFile ? (
-            <FilePreview
-              file={passportFile}
-              onRemove={() => setPassportFile(null)}
-              disabled={isUploading}
-            />
+            <>
+              <FilePreview
+                file={passportFile}
+                onRemove={() => setPassportFile(null)}
+                disabled={isUploading}
+              />
+              <UploadProgress status={uploadStatus} documentLabel="Passport" />
+            </>
           ) : (
             <UploadZone
               documentType="passport"
@@ -178,8 +181,6 @@ export function UploadSection(): React.JSX.Element {
           )}
         </div>
 
-        {/* Upload progress */}
-        <UploadProgress status={uploadStatus} />
       </CardContent>
     </Card>
   );

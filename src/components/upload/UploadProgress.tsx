@@ -5,9 +5,10 @@ import type { UploadStatus } from '@/types';
 
 interface UploadProgressProps {
   readonly status: UploadStatus;
+  readonly documentLabel?: string;
 }
 
-export function UploadProgress({ status }: UploadProgressProps): React.JSX.Element | null {
+export function UploadProgress({ status, documentLabel }: UploadProgressProps): React.JSX.Element | null {
   if (status === 'idle') {
     return null;
   }
@@ -16,6 +17,8 @@ export function UploadProgress({ status }: UploadProgressProps): React.JSX.Eleme
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={cn(
         'flex items-center gap-3 rounded-lg p-3',
         isUploading && 'bg-blue-50 dark:bg-blue-900/20',
@@ -46,7 +49,7 @@ export function UploadProgress({ status }: UploadProgressProps): React.JSX.Eleme
             />
           </svg>
           <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            Processing documents...
+            Processing {documentLabel ?? 'document'}...
           </span>
         </>
       )}
@@ -66,7 +69,7 @@ export function UploadProgress({ status }: UploadProgressProps): React.JSX.Eleme
             />
           </svg>
           <span className="text-sm font-medium text-green-700 dark:text-green-300">
-            Extraction complete
+            {documentLabel ?? 'Data'} extraction complete
           </span>
         </>
       )}

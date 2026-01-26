@@ -479,12 +479,16 @@ Loading:        [spinner Extracting Data...]
 
 ### Upload Progress States
 
+Progress indicator appears inline directly below the document being processed (e.g., passport FilePreview).
+
 | State | Visual | Message |
 |-------|--------|---------|
 | idle | — | — |
-| uploading | Spinner | "Uploading..." |
-| success | Green checkmark | "Upload complete" |
-| error | Red X | Error message |
+| uploading | Blue spinner | "Processing {documentLabel}..." |
+| success | Green checkmark | "{documentLabel} extraction complete" |
+| error | Red X | "Extraction failed" |
+
+**Note:** `documentLabel` is passed as a prop (e.g., "Passport") for context-specific messaging.
 
 ### Form Submit States
 
