@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - ALLOWED_ORIGINS=http://localhost:3000
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -21,8 +21,8 @@ services:
       - "8001:8001"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ANTHROPIC_MODEL=claude-sonnet-4-20250514
-      - ALLOWED_ORIGINS=http://localhost:3000
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
@@ -36,10 +36,10 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - TARGET_FORM_URL=https://mendrika-alma.github.io/form-submission/
-      - ALLOWED_ORIGINS=http://localhost:3000
-      - HEADLESS=true
-      - LOG_LEVEL=INFO
+      - TARGET_FORM_URL=${TARGET_FORM_URL:-https://mendrika-alma.github.io/form-submission/}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+      - HEADLESS=${HEADLESS:-true}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
