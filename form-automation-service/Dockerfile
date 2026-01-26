@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install system dependencies for Playwright
+# Install system dependencies for Playwright (including fonts with correct package names)
 RUN apt-get update && apt-get install -y \
     curl \
     libnss3 \
@@ -26,14 +26,17 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     libatspi2.0-0 \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    fonts-unifont \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for layer caching
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Install Playwright browsers
-RUN playwright install chromium --with-deps
+# Install Playwright Chromium (without --with-deps since we installed deps above)
+RUN playwright install chromium
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser

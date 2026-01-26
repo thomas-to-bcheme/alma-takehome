@@ -5,7 +5,8 @@ PassportEye wrapper for MRZ extraction from passport images.
 import os
 import tempfile
 import logging
-from typing import TypedDict, Literal
+from typing import Literal
+from typing_extensions import TypedDict
 
 from passporteye import read_mrz
 
