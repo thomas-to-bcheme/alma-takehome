@@ -53,7 +53,10 @@ export function FormA28({ onFillForm, isSubmitting = false }: FormA28Props): Rea
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
           {lastSavedAt && (
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+            <span
+              className="text-sm text-zinc-500 dark:text-zinc-400"
+              suppressHydrationWarning
+            >
               {isSaving ? 'Saving...' : `Last saved: ${formatLastSaved(lastSavedAt)}`}
             </span>
           )}
