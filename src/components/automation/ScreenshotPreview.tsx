@@ -119,7 +119,7 @@ export function ScreenshotPreview({
         )}
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="ml-auto text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          className="ml-auto text-sm text-alma-primary hover:text-alma-primary-hover dark:text-alma-primary dark:hover:text-alma-primary-hover"
         >
           {showDetails ? 'Hide details' : 'Show details'}
         </button>
@@ -154,7 +154,7 @@ export function ScreenshotPreview({
         {result.screenshotBase64 && (
           <button
             onClick={handleDownload}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-800"
+            className="inline-flex items-center gap-2 rounded-lg bg-alma-primary px-4 py-2 text-sm font-medium text-white hover:bg-alma-primary-hover focus:outline-none focus:ring-2 focus:ring-alma-focus focus:ring-offset-2 dark:focus:ring-offset-zinc-800"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path

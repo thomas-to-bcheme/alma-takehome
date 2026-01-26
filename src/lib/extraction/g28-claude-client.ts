@@ -49,7 +49,6 @@ export interface G28ClaudeClient {
   readonly middle_name: string;
   readonly phone: string;
   readonly email: string;
-  readonly alien_number: string;
 }
 
 /**

@@ -271,7 +271,6 @@ function mapClaudeToG28Data(claudeData: G28ClaudeData): G28Data {
     phone: attorney.phone,
     email: attorney.email,
     clientName,
-    alienNumber: client.alien_number,
     barNumber: eligibility.bar_number,
     // Eligibility flags
     isAttorney: eligibility.is_attorney,

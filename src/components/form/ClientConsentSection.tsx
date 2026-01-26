@@ -45,6 +45,9 @@ export function ClientConsentSection(): React.JSX.Element {
               {...register('documentsToAttorney')}
               error={errors.documentsToAttorney?.message}
             />
+            <p className="ml-6 text-sm text-zinc-600 dark:text-zinc-400">
+              NOTE: If your notice contains important travel documentation, it will be sent to the business address of your attorney or representative. If you would rather have this documentation sent directly to you, select Item Number 1.c.
+            </p>
 
             {/* 1.c */}
             <Checkbox

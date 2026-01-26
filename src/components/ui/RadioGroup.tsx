@@ -47,8 +47,8 @@ export const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(function R
               disabled={disabled}
               onChange={(e) => onChange?.(e.target.value)}
               className={cn(
-                'h-4 w-4 border-zinc-300 text-blue-600',
-                'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                'h-4 w-4 border-zinc-300 text-alma-primary',
+                'focus:ring-2 focus:ring-alma-focus focus:ring-offset-2',
                 'dark:border-zinc-600 dark:bg-zinc-800',
                 error && 'border-red-500'
               )}
@@ -88,8 +88,8 @@ export const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(function R
               disabled={disabled}
               onChange={(e) => onChange?.(e.target.value)}
               className={cn(
-                'h-4 w-4 border-zinc-300 text-blue-600',
-                'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                'h-4 w-4 border-zinc-300 text-alma-primary',
+                'focus:ring-2 focus:ring-alma-focus focus:ring-offset-2',
                 'dark:border-zinc-600 dark:bg-zinc-800',
                 error && 'border-red-500'
               )}

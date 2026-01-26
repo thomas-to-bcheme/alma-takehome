@@ -55,8 +55,6 @@ const passportInfoSchema = z.object({
   placeOfBirth: z.string().min(1, 'Place of birth is required'),
   sex: z.enum(['M', 'F', 'X'], { message: 'Please select sex' }),
   nationality: z.string().min(1, 'Nationality is required'),
-
-  alienNumber: z.string().optional(),
 });
 
 // =============================================================================
@@ -230,7 +228,6 @@ export const defaultFormA28Values: Partial<FormA28Data> = {
   placeOfBirth: '',
   sex: undefined,
   nationality: '',
-  alienNumber: '',
 
   // Client Consent - Part 4
   noticeToAttorney: false,

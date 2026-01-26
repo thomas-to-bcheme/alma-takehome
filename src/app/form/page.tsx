@@ -34,7 +34,6 @@ const mockExtractedData: Partial<FormA28Data> = {
   zipCode: '10001',
   daytimePhone: '212-555-1234',
   email: 'jane.smith@smithlaw.com',
-  alienNumber: 'A123456789',
 
   // Part 2: Eligibility
   isAttorney: true,
@@ -69,14 +68,14 @@ export default function FormPreviewPage(): React.JSX.Element {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+    <div className="min-h-screen bg-alma-surface dark:bg-zinc-900">
       <div className="mx-auto max-w-4xl px-4 py-8">
         {/* Page Header */}
         <header className="mb-8">
           <nav className="mb-4">
             <Link
               href="/"
-              className="text-sm text-blue-600 hover:underline dark:text-blue-400"
+              className="text-sm text-alma-primary hover:underline dark:text-alma-primary"
             >
               &larr; Back to Upload
             </Link>

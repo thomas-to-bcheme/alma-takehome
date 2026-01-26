@@ -75,7 +75,6 @@ export const G28DataSchema = z.object({
   fax: z.string().optional(),
   email: z.string().email(),
   clientName: z.string(),
-  alienNumber: z.string(),
   barNumber: z.string().optional(),
   licensingAuthority: z.string().optional(),
   // Eligibility flags

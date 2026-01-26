@@ -29,8 +29,8 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           type="checkbox"
           id={checkboxId}
           className={cn(
-            'h-4 w-4 rounded border-zinc-300 text-blue-600',
-            'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+            'h-4 w-4 rounded border-zinc-300 text-alma-primary',
+            'focus:ring-2 focus:ring-alma-focus focus:ring-offset-2',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'dark:border-zinc-600 dark:bg-zinc-800',
             error && 'border-red-500',

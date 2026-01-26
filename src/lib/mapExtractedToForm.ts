@@ -75,9 +75,6 @@ export function mapExtractedToForm(extracted: ExtractedData): Partial<FormA28Dat
     result.fax = g28.fax || '';
     result.email = g28.email || '';
 
-    // Client's alien number
-    result.alienNumber = g28.alienNumber || '';
-
     // If G-28 has client name and no passport data, use G-28 client info
     // (passport data takes precedence when available)
     if (g28.clientName && !extracted.passport) {

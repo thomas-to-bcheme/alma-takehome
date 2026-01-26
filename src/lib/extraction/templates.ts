@@ -38,7 +38,6 @@ export const G28_TEMPLATE = {
   fax: '',
   email: '',
   clientName: '',
-  alienNumber: '',
   barNumber: '',
 } as const;
 

@@ -95,7 +95,7 @@ function MainContent(): React.JSX.Element {
 
 export default function Home(): React.JSX.Element {
   return (
-    <div className="min-h-screen bg-[#f5f5f5] p-4 font-sans md:p-8 dark:bg-zinc-950">
+    <div className="min-h-screen bg-alma-surface p-4 font-sans md:p-8 dark:bg-zinc-950">
       <main className="mx-auto max-w-[800px] overflow-hidden rounded-lg bg-white shadow-lg dark:bg-zinc-900">
         <AppStateProvider>
           <MainContent />

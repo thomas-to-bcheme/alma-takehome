@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Alma brand colors */
+  --alma-primary: #2F5B50;
+  --alma-primary-hover: #244a41;
+  --alma-surface: #fff7ee;
+  --alma-focus: #4d65ff;
+  --alma-accent: #E0F0BC;
 }
 
 @theme inline {
@@ -10,6 +16,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-alma-primary: var(--alma-primary);
+  --color-alma-primary-hover: var(--alma-primary-hover);
+  --color-alma-surface: var(--alma-surface);
+  --color-alma-focus: var(--alma-focus);
+  --color-alma-accent: var(--alma-accent);
 }
 
 @media (prefers-color-scheme: dark) {

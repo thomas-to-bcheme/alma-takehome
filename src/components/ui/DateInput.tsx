@@ -31,10 +31,10 @@ export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(function D
         id={inputId}
         className={cn(
           'rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900',
-          'focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500',
+          'focus:border-alma-focus focus:outline-none focus:ring-1 focus:ring-alma-focus',
           'disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500',
           'dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100',
-          'dark:focus:border-blue-400 dark:focus:ring-blue-400',
+          'dark:focus:border-alma-focus dark:focus:ring-alma-focus',
           '[&::-webkit-calendar-picker-indicator]:dark:invert',
           error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
           className
