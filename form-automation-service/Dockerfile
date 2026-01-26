@@ -35,9 +35,6 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Install Playwright Chromium (without --with-deps since we installed deps above)
-RUN playwright install chromium
-
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser
 
@@ -49,6 +46,9 @@ RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
+
+# Install Playwright Chromium as appuser so cache is in correct location
+RUN playwright install chromium
 
 # Expose port
 EXPOSE 8002

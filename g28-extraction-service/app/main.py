@@ -98,9 +98,9 @@ async def extract_g28(
     logger.info(
         "Processing G-28 extraction request",
         extra={
-            "filename": file.filename,
-            "size": len(content),
-            "content_type": content_type,
+            "uploaded_file": file.filename,
+            "file_size": len(content),
+            "mime_type": content_type,
         },
     )
 

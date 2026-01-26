@@ -93,6 +93,9 @@ class FormA28Page:
                     )
                     return
 
+            # Scroll element into view and ensure visibility
+            await element.scroll_into_view_if_needed()
+
             # Fill based on field type
             if mapping.field_type == FieldType.TEXT:
                 await self._fill_text_field(selector, str(value))
@@ -173,7 +176,20 @@ class FormA28Page:
 
     async def _fill_select_field(self, selector: str, value: str) -> None:
         """Fill a select dropdown."""
-        await self.page.select_option(selector, value)
+        logger.debug(f"Selecting {value} in {selector}")
+        try:
+            # Try standard select_option first with short timeout
+            await self.page.select_option(selector, value, timeout=3000)
+        except Exception:
+            # Fallback: Use JavaScript to set the value directly
+            logger.debug(f"Falling back to JS for {selector}")
+            await self.page.evaluate(
+                f'document.querySelector("{selector}").value = "{value}"'
+            )
+            # Dispatch change event so form knows the value changed
+            await self.page.evaluate(
+                f'document.querySelector("{selector}").dispatchEvent(new Event("change", {{ bubbles: true }}))'
+            )
 
     async def _fill_checkbox_field(self, selector: str, checked: bool) -> None:
         """Set checkbox state."""
