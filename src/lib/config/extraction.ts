@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NUEXTRACT_DEFAULTS } from '@/lib/constants';
+import { NUEXTRACT_DEFAULTS, PASSPORTEYE_DEFAULTS } from '@/lib/constants';
 
 /**
  * Environment configuration schema for extraction services
@@ -10,6 +10,13 @@ const ExtractionConfigSchema = z.object({
     apiKey: z.string().min(1),
     timeoutMs: z.number().int().positive().default(NUEXTRACT_DEFAULTS.TIMEOUT_MS),
   }),
+  passporteye: z
+    .object({
+      apiUrl: z.string().url(),
+      timeoutMs: z.number().int().positive().default(PASSPORTEYE_DEFAULTS.TIMEOUT_MS),
+      enabled: z.boolean().default(PASSPORTEYE_DEFAULTS.ENABLED),
+    })
+    .optional(),
 });
 
 export type ExtractionConfig = z.infer<typeof ExtractionConfigSchema>;
@@ -19,6 +26,18 @@ export type ExtractionConfig = z.infer<typeof ExtractionConfigSchema>;
  * @throws {Error} If required environment variables are missing or invalid
  */
 export function loadExtractionConfig(): ExtractionConfig {
+  // Build passporteye config only if API URL is provided
+  const passporteyeApiUrl = process.env.PASSPORTEYE_API_URL;
+  const passporteyeConfig = passporteyeApiUrl
+    ? {
+        apiUrl: passporteyeApiUrl,
+        timeoutMs: process.env.PASSPORTEYE_TIMEOUT_MS
+          ? parseInt(process.env.PASSPORTEYE_TIMEOUT_MS, 10)
+          : PASSPORTEYE_DEFAULTS.TIMEOUT_MS,
+        enabled: process.env.PASSPORTEYE_ENABLED !== 'false',
+      }
+    : undefined;
+
   const rawConfig = {
     nuextract: {
       apiUrl: process.env.NUEXTRACT_API_URL,
@@ -27,6 +46,7 @@ export function loadExtractionConfig(): ExtractionConfig {
         ? parseInt(process.env.NUEXTRACT_TIMEOUT_MS, 10)
         : NUEXTRACT_DEFAULTS.TIMEOUT_MS,
     },
+    passporteye: passporteyeConfig,
   };
 
   const result = ExtractionConfigSchema.safeParse(rawConfig);

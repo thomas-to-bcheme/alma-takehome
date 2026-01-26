@@ -29,14 +29,6 @@ interface FileValidation {
 /**
  * Validate uploaded file type and size
  */
-interface FileValidation {
-  valid: boolean;
-  error?: {
-    type: string;
-    message: string;
-  };
-}
-
 function validateFile(file: File): FileValidation {
   if (!isAcceptedMimeType(file.type)) {
     return {
@@ -131,7 +123,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ExtractRe
 
     // Extract data from passport
     const passportBuffer = Buffer.from(await passportFile.arrayBuffer());
-    const passportResult = await extractPassportData(passportBuffer);
+    const passportResult = await extractPassportData(
+      passportBuffer,
+      undefined, // No pre-extracted OCR text
+      passportFile.type // Pass MIME type for PassportEye
+    );
 
     // Extract data from G-28 if provided
     let g28Result = null;
@@ -176,43 +172,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<ExtractRe
         g28: g28Result?.data ?? undefined,
       },
       warnings: warnings.length > 0 ? warnings : undefined,
-    // Mock extraction data for now
-    // In production, this would call actual extraction services
-    // Using backend-aligned field names: surname, givenNames, documentNumber
-    const mockData = {
-      passport: {
-        documentType: 'P',
-        issuingCountry: 'USA',
-        surname: 'DOE',
-        givenNames: 'JOHN',
-        documentNumber: 'AB1234567',
-        nationality: 'USA',
-        dateOfBirth: '1990-01-15',
-        sex: 'M' as const,
-        expirationDate: '2030-01-15',
-        extractionMethod: 'mrz' as const,
-        confidence: 0.95,
-      },
-      g28:
-        g28File && g28File.size > 0
-          ? {
-              attorneyName: 'Jane Smith',
-              firmName: 'Immigration Law Partners',
-              street: '123 Legal Ave',
-              city: 'San Francisco',
-              state: 'CA',
-              zipCode: '94102',
-              phone: '(415) 555-1234',
-              email: 'jane.smith@immigrationlaw.com',
-              clientName: 'John Doe',
-              alienNumber: 'A123456789',
-            }
-          : undefined,
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: mockData,
     });
   } catch (error) {
     // Log error without PII

@@ -112,9 +112,9 @@ function validateCheckDigit(data: string, checkDigit: string): boolean {
  * Convert MRZ date (YYMMDD) to ISO format (YYYY-MM-DD)
  * Assumes dates in the past century for DOB, future for expiration
  */
-function parseMRZDate(mrzDate: string, isExpiration: boolean): string | null {
+function parseMRZDate(mrzDate: string, isExpiration: boolean): string {
   if (mrzDate.length !== 6 || !/^\d{6}$/.test(mrzDate)) {
-    return null;
+    return '';
   }
 
   const yy = parseInt(mrzDate.slice(0, 2), 10);
@@ -257,10 +257,12 @@ export function parseMRZ(mrzLines: [string, string]): MRZParseResult {
     issuingCountry: normalizeCountry(issuingCountryCode),
     surname,
     givenNames,
-    documentNumber: documentNumber || null,
+    documentNumber: documentNumber || '',
     nationality: normalizeCountry(nationalityCode),
     dateOfBirth,
-    sex: ['M', 'F', 'X'].includes(sex) ? sex : null,
+    sex: (['M', 'F', 'X'] as const).includes(sex as 'M' | 'F' | 'X')
+      ? (sex as 'M' | 'F' | 'X')
+      : 'X',
     expirationDate,
   };
 

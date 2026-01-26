@@ -7,15 +7,21 @@ import {
   G28DataSchema,
 } from '@/types';
 import { extractWithNuExtract, bufferToBase64, NuExtractError } from './nuextract-client';
+import {
+  extractWithPassportEye,
+  isPassportEyeEnabled,
+  PassportEyeError,
+} from './passporteye-client';
 import { extractFromMRZ } from './mrz/parser';
 import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
 
 /**
- * Extraction pipeline that orchestrates MRZ parsing and NuExtract API fallback
+ * Extraction pipeline that orchestrates PassportEye, MRZ parsing, and NuExtract API fallback
  *
  * For passports:
- * 1. Attempt MRZ parsing (highest accuracy for ICAO-compliant passports)
- * 2. If MRZ fails, fall back to NuExtract API
+ * 1. Attempt PassportEye extraction (highest accuracy with Tesseract OCR)
+ * 2. If PassportEye fails, try MRZ parsing
+ * 3. If MRZ fails, fall back to NuExtract API
  *
  * For G-28 forms:
  * 1. Use NuExtract API directly (no MRZ available)
@@ -72,16 +78,58 @@ function normalizeSex(sex: string | null | undefined): 'M' | 'F' | 'X' | null {
 /**
  * Extract passport data from an image buffer
  *
- * Uses MRZ parsing first, falls back to NuExtract API
+ * Uses PassportEye first, then MRZ parsing, then falls back to NuExtract API
+ *
+ * @param imageBuffer - Raw image bytes
+ * @param ocrText - Optional pre-extracted OCR text for MRZ parsing
+ * @param mimeType - MIME type of the image (required for PassportEye)
  */
 export async function extractPassportData(
   imageBuffer: Buffer,
-  ocrText?: string
+  ocrText?: string,
+  mimeType?: string
 ): Promise<ExtractionResult<PassportData>> {
   const errors: ExtractionError[] = [];
   const warnings: string[] = [];
 
-  // Step 1: Try MRZ parsing if OCR text is available
+  // Step 1: Try PassportEye if enabled and mimeType is provided
+  if (mimeType && isPassportEyeEnabled()) {
+    try {
+      const passportEyeResult = await extractWithPassportEye(imageBuffer, mimeType);
+
+      if (passportEyeResult.success && passportEyeResult.data) {
+        // Validate with Zod
+        const validation = PassportDataSchema.safeParse(passportEyeResult.data);
+
+        if (validation.success) {
+          return {
+            success: true,
+            data: validation.data,
+            method: 'passporteye',
+            confidence: passportEyeResult.confidence,
+            errors: [],
+            warnings: [],
+          };
+        }
+
+        warnings.push('PassportEye extracted data but validation failed, trying fallbacks');
+      } else {
+        warnings.push(
+          `PassportEye extraction failed: ${passportEyeResult.error ?? 'Unknown error'}, trying fallbacks`
+        );
+      }
+    } catch (error) {
+      if (error instanceof PassportEyeError) {
+        if (error.code !== 'DISABLED') {
+          warnings.push(`PassportEye error: ${error.message}, trying fallbacks`);
+        }
+      } else {
+        warnings.push('PassportEye unexpected error, trying fallbacks');
+      }
+    }
+  }
+
+  // Step 2: Try MRZ parsing if OCR text is available
   if (ocrText) {
     const mrzResult = extractFromMRZ(ocrText);
 
@@ -107,7 +155,7 @@ export async function extractPassportData(
     }
   }
 
-  // Step 2: Fall back to NuExtract API
+  // Step 3: Fall back to NuExtract API
   try {
     const base64 = bufferToBase64(imageBuffer);
     const rawData = await extractWithNuExtract(base64, PASSPORT_TEMPLATE);

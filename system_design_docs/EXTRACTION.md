@@ -6,46 +6,137 @@
 
 Multi-strategy extraction system that uses MRZ parsing, OCR, and LLM vision to extract data from passport and G-28 documents.
 
+## Data Sources by Document Type
+
+Each document serves as the authoritative source for specific fields. The passport does not contain addresses or emails, so contact information must be pulled from the G-28.
+
+### Passport — Machine Readable Zone (MRZ)
+
+The MRZ is the **source of truth** for personal identity information. This format is standardized across ICAO-compliant passports (including USA, AUS, and other countries).
+
+| Field | MRZ Format | Example |
+|-------|------------|---------|
+| Given Name | First name(s) | Joe |
+| Surname | Family name | Jonas |
+| Date of Birth | YYMMDD | 900515 → May 15, 1990 |
+| Nationality | 3-letter ISO code | USA, AUS, GBR |
+| Sex | M/F/X | M |
+| Passport Number | Document number | 123456789 |
+| Expiration Date | YYMMDD | 300514 → May 14, 2030 |
+
+### G-28 Form — Contact Information & Attorney Details
+
+The G-28 is the **source of truth** for contact information and attorney/representative details.
+
+#### Client Contact Info (Part 3)
+
+| Field | G-28 Location | Example |
+|-------|---------------|---------|
+| Client Email | Part 3, Item 12 | b.smith_00@test.ai |
+| Client Phone | Part 3, Item 10 | +61 45453434 |
+| Street Address | Part 3, Mailing Address | 16 Anytown Street |
+| City | Part 3, Mailing Address | Perth |
+| State/Province | Part 3, Mailing Address | WA |
+| Postal Code | Part 3, Mailing Address | 6000 |
+| Country | Part 3, Mailing Address | Australia |
+
+#### Attorney/Representative Info (Part 1)
+
+| Field | G-28 Location | Example |
+|-------|---------------|---------|
+| Attorney Name | Part 1 | Barbara Smith |
+| Firm Name | Part 1 | Alma Legal Services PC |
+| Attorney Email | Part 1 | immigration@tryalma.ai |
+| Attorney Address | Part 1 | 545 Bryant Street, Palo Alto, CA 94301 |
+
+---
+
 ## Extraction Strategy Priority
+
+The system uses **document-specific pipelines** optimized for each document type:
+
+```
+PASSPORT PIPELINE                    G-28 PIPELINE
+─────────────────                    ──────────────
+1. PassportEye (Tesseract OCR)       1. PDF → Image (300 DPI)
+        ↓ failed?                            ↓
+2. MRZ Parser (ICAO 9303)            2. Claude Vision (3.5 Sonnet)
+        ↓ failed?                            ↓
+3. NuExtract API (fallback)          3. Schema Validation (Zod)
+```
+
+### Passport Pipeline
+
+PassportEye is the **primary extraction method** for passports. It uses Tesseract OCR optimized for MRZ detection and parsing.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    EXTRACTION PIPELINE                          │
+│                    PASSPORT EXTRACTION                           │
 └─────────────────────────────────────────────────────────────────┘
 
-Document Input
+Passport Image
       │
       ▼
-┌─────────────────┐
-│  1. MRZ PARSING │  ◄── Highest accuracy, structured format
-│    (Passport)   │      Works for all ICAO-compliant passports
-└────────┬────────┘
-         │ MRZ found?
+┌─────────────────────┐
+│  1. PASSPORTEYE     │  ◄── Primary: Tesseract OCR + MRZ detection
+│     (Python API)    │      Runs via Flask microservice
+└────────┬────────────┘
+         │ MRZ extracted?
     Yes ─┤
          │ No
          ▼
-┌─────────────────┐
-│  2. OCR ENGINE  │  ◄── Template-based for G-28
-│                 │      Field position matching
-└────────┬────────┘
-         │ High confidence?
+┌─────────────────────┐
+│  2. MRZ PARSER      │  ◄── Secondary: ICAO 9303 format parsing
+│     (TypeScript)    │      Uses check digit validation
+└────────┬────────────┘
+         │ Valid MRZ?
     Yes ─┤
          │ No
          ▼
-┌─────────────────┐
-│  3. LLM VISION  │  ◄── Fallback for unclear documents
-│    (Claude/GPT) │      Handles formatting variations
-└────────┬────────┘
+┌─────────────────────┐
+│  3. NUEXTRACT API   │  ◄── Fallback: LLM-based extraction
+│     (External)      │      For damaged/unclear passports
+└────────┬────────────┘
          │
          ▼
-┌─────────────────┐
-│  NORMALIZATION  │  ◄── Country codes, dates, validation
-└─────────────────┘
+┌─────────────────────┐
+│  NORMALIZATION      │  ◄── Country codes, dates, validation
+└─────────────────────┘
+```
+
+### G-28 Pipeline (LLM-First)
+
+G-28 forms use **Claude Vision as the primary extraction method** due to the complex, variable layout of form fields.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    G-28 EXTRACTION (LLM-FIRST)                   │
+└─────────────────────────────────────────────────────────────────┘
+
+G-28 PDF/Image
+      │
+      ▼
+┌─────────────────────┐
+│  1. PREPROCESSING   │  ◄── PDF → Image conversion at 300 DPI
+│     (pdf2image)     │      Sharp for image optimization
+└────────┬────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  2. CLAUDE VISION   │  ◄── Primary: Claude 3.5 Sonnet multimodal
+│     (3.5 Sonnet)    │      Structured JSON extraction
+└────────┬────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  3. VALIDATION      │  ◄── Zod schema validation
+│     (Zod)           │      E.164 phone, email normalization
+└─────────────────────┘
 ```
 
 ---
 
-## 1. MRZ Parsing
+## 1. Passport Extraction: MRZ Parsing
 
 ### MRZ Format (TD3 - Passport)
 
@@ -111,77 +202,304 @@ interface MRZDetectionResult {
 
 ---
 
-## 2. OCR Engine
+## 2. Passport Extraction: PassportEye Service
 
-### Provider Options
+PassportEye is a Python library that provides specialized MRZ detection and extraction using Tesseract OCR optimized for passport documents.
 
-| Provider | Pros | Cons |
-|----------|------|------|
-| Tesseract | Free, local | Lower accuracy |
-| Google Vision | High accuracy | Cost per request |
-| AWS Textract | Form extraction | Cost, AWS lock-in |
+### Architecture
 
-### Configuration
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PASSPORTEYE SERVICE                           │
+└─────────────────────────────────────────────────────────────────┘
 
-```typescript
-interface OCRConfig {
-  provider: 'tesseract' | 'google-vision' | 'aws-textract';
-  language: string[];           // ['eng'] for English
-  preprocessImage: boolean;     // Deskew, enhance contrast
-  confidence_threshold: number; // Minimum confidence (0-1)
-}
-
-const DEFAULT_CONFIG: OCRConfig = {
-  provider: 'tesseract',
-  language: ['eng'],
-  preprocessImage: true,
-  confidence_threshold: 0.7,
-};
+Next.js App                     Flask Microservice
+     │                                  │
+     │  POST /extract                   │
+     │  (base64 image)                  │
+     ├─────────────────────────────────►│
+     │                                  │  1. Decode image
+     │                                  │  2. PassportEye.read()
+     │                                  │  3. Extract MRZ fields
+     │  JSON response                   │
+     │◄─────────────────────────────────┤
+     │                                  │
 ```
 
-### Image Preprocessing
+### Service Configuration
+
+```python
+# passporteye-service/app.py
+from passporteye import read_mrz
+
+def extract_mrz(image_bytes: bytes) -> dict:
+    """Extract MRZ data using PassportEye."""
+    mrz = read_mrz(image_bytes)
+    if mrz is None:
+        return {"success": False, "error": "MRZ_NOT_FOUND"}
+
+    return {
+        "success": True,
+        "data": {
+            "surname": mrz.surname,
+            "names": mrz.names,
+            "country": mrz.country,
+            "nationality": mrz.nationality,
+            "date_of_birth": mrz.date_of_birth,
+            "expiration_date": mrz.expiration_date,
+            "sex": mrz.sex,
+            "number": mrz.number,
+            "valid_score": mrz.valid_score
+        }
+    }
+```
+
+### Client Integration
 
 ```typescript
-async function preprocessImage(image: Buffer): Promise<Buffer> {
-  // 1. Convert to grayscale
-  // 2. Deskew (correct rotation)
-  // 3. Enhance contrast
-  // 4. Remove noise
-  // 5. Binarize (black/white)
-  return processedImage;
+// src/lib/extraction/passporteye-client.ts
+interface PassportEyeResponse {
+  success: boolean;
+  data?: {
+    surname: string;
+    names: string;
+    country: string;
+    nationality: string;
+    date_of_birth: string;
+    expiration_date: string;
+    sex: string;
+    number: string;
+    valid_score: number;
+  };
+  error?: string;
+}
+
+async function extractWithPassportEye(imageBase64: string): Promise<PassportEyeResponse> {
+  const response = await fetch(process.env.PASSPORTEYE_SERVICE_URL + '/extract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: imageBase64 }),
+  });
+  return response.json();
 }
 ```
 
-### G-28 Field Regions
+### Environment Variables
 
-```typescript
-// Known field positions for standard G-28 layout
-const G28_FIELD_REGIONS: Record<string, FieldRegion> = {
-  attorneyName: {
-    page: 1,
-    region: { x: 50, y: 200, width: 300, height: 30 },
-    label: "Attorney Name",
-  },
-  firmName: {
-    page: 1,
-    region: { x: 50, y: 250, width: 300, height: 30 },
-    label: "Firm Name",
-  },
-  // ... other fields
-};
-
-interface FieldRegion {
-  page: number;
-  region: { x: number; y: number; width: number; height: number };
-  label: string;
-}
+```bash
+# .env.local
+PASSPORTEYE_SERVICE_URL=http://localhost:5001
 ```
 
 ---
 
-## 3. LLM Vision Extraction
+## 3. G-28 Extraction: LLM-First Workflow
 
-### Prompt Template
+G-28 forms use **Claude 3.5 Sonnet Vision** as the primary extraction method. This approach handles the complex, variable layout of handwritten and typed form fields.
+
+### Three-Step Workflow
+
+#### Step A: PDF Preprocessing
+
+Convert PDF pages to high-resolution images for optimal LLM vision analysis.
+
+```typescript
+import { fromPath } from 'pdf2image';
+
+async function preprocessG28(pdfPath: string): Promise<Buffer[]> {
+  const images = await fromPath(pdfPath, {
+    density: 300,           // 300 DPI for clear text
+    saveFilename: 'page',
+    savePath: '/tmp',
+    format: 'png',
+    width: 2550,            // Letter size at 300 DPI
+    height: 3300,
+  });
+  return images.map(img => img.buffer);
+}
+```
+
+#### Step B: Claude Vision Analysis
+
+Send preprocessed images to Claude 3.5 Sonnet with a structured extraction prompt.
+
+```typescript
+interface G28ExtractionRequest {
+  images: string[];  // Base64 encoded images
+  model: 'claude-3-5-sonnet-20241022';
+}
+
+async function extractG28WithClaude(images: string[]): Promise<G28Data> {
+  const response = await anthropic.messages.create({
+    model: 'claude-3-5-sonnet-20241022',
+    max_tokens: 2000,
+    temperature: 0,
+    messages: [{
+      role: 'user',
+      content: [
+        ...images.map(img => ({
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/png', data: img }
+        })),
+        { type: 'text', text: G28_EXTRACTION_PROMPT }
+      ]
+    }]
+  });
+  return JSON.parse(response.content[0].text);
+}
+```
+
+#### Step C: Post-Extraction Validation
+
+Validate and normalize extracted data using Zod schemas.
+
+```typescript
+const extractedData = await extractG28WithClaude(images);
+const validated = G28Schema.safeParse(extractedData);
+
+if (!validated.success) {
+  throw new ExtractionError('G28_VALIDATION_FAILED', validated.error);
+}
+
+return normalizeG28Data(validated.data);
+```
+
+---
+
+### G-28 Claude Prompt Template
+
+```typescript
+const G28_EXTRACTION_PROMPT = `
+You are a legal document parser specialized in USCIS Form G-28.
+
+## Task
+Extract structured data from this G-28 form image. Return ONLY valid JSON.
+
+## Extraction Rules
+
+### Attorney Information (Part 1)
+- full_name: Attorney's full name from Part 1
+- firm_name: Law firm or organization name
+- bar_number: Bar number or license info (if visible)
+- email: Attorney's email address
+
+### Representative Type (Part 2, Item 1.a)
+- is_eligible_attorney: TRUE if checkbox "I am an attorney eligible to practice law..." is checked
+- Note: Check the first checkbox in Part 2, Item 1.a
+
+### Client Information (Part 3)
+- family_name: Client's family/last name
+- given_name: Client's given/first name
+- full_name: Concatenate given_name + family_name
+- email: Client's email from Part 3, Item 12
+- mobile_phone: Client's phone from Part 3, Item 10
+- mailing_address: Parse street, city, state, zip, country from Part 3 mailing address
+
+## Normalization Rules
+- Phone numbers: Convert to E.164 format (+1XXXXXXXXXX for US, +61XXXXXXXXX for AU)
+- Email: Lowercase, trim whitespace
+- State: Use 2-letter abbreviation (CA, NY, WA)
+- Country: Full name (Australia, United States)
+
+## Null Handling
+If a field is not visible, illegible, or not filled in, use null.
+
+## Response Format
+{
+  "attorney_info": {
+    "full_name": "string | null",
+    "firm_name": "string | null",
+    "bar_number": "string | null",
+    "email": "string | null",
+    "is_eligible_attorney": "boolean"
+  },
+  "client_info": {
+    "family_name": "string | null",
+    "given_name": "string | null",
+    "full_name": "string | null",
+    "email": "string | null",
+    "mobile_phone": "string | null",
+    "mailing_address": {
+      "street": "string | null",
+      "city": "string | null",
+      "state": "string | null",
+      "zip": "string | null",
+      "country": "string | null",
+      "full_formatted": "string | null"
+    }
+  }
+}
+`;
+```
+
+---
+
+### G-28 Schema Definition
+
+```typescript
+import { z } from 'zod';
+
+const MailingAddressSchema = z.object({
+  street: z.string().nullable(),
+  city: z.string().nullable(),
+  state: z.string().max(2).nullable(),  // 2-letter state code
+  zip: z.string().nullable(),
+  country: z.string().nullable(),
+  full_formatted: z.string().nullable(),
+});
+
+const AttorneyInfoSchema = z.object({
+  full_name: z.string().nullable(),
+  firm_name: z.string().nullable(),
+  bar_number: z.string().nullable(),
+  email: z.string().email().nullable(),
+  is_eligible_attorney: z.boolean(),
+});
+
+const ClientInfoSchema = z.object({
+  family_name: z.string().nullable(),
+  given_name: z.string().nullable(),
+  full_name: z.string().nullable(),
+  email: z.string().email().nullable(),
+  mobile_phone: z.string().nullable(),  // E.164 format
+  mailing_address: MailingAddressSchema,
+});
+
+export const G28Schema = z.object({
+  attorney_info: AttorneyInfoSchema,
+  client_info: ClientInfoSchema,
+});
+
+export type G28Data = z.infer<typeof G28Schema>;
+```
+
+---
+
+### LLM Configuration
+
+```typescript
+interface LLMConfig {
+  provider: 'anthropic';
+  model: string;              // 'claude-3-5-sonnet-20241022'
+  maxTokens: number;
+  temperature: number;        // 0 for deterministic extraction
+  timeout: number;            // ms
+}
+
+const G28_LLM_CONFIG: LLMConfig = {
+  provider: 'anthropic',
+  model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+  maxTokens: 2000,
+  temperature: 0,
+  timeout: 60000,  // 60s for multi-page forms
+};
+```
+
+---
+
+### Passport LLM Fallback
+
+For passports where PassportEye and MRZ parsing fail, use NuExtract API as the fallback.
 
 ```typescript
 const PASSPORT_EXTRACTION_PROMPT = `
@@ -200,69 +518,7 @@ Fields to extract:
 - expirationDate: Format as YYYY-MM-DD
 
 If a field is not visible or unclear, use null.
-
-Example response:
-{
-  "documentType": "P",
-  "issuingCountry": "United States",
-  "surname": "DOE",
-  "givenNames": "JOHN MICHAEL",
-  "documentNumber": "123456789",
-  "nationality": "United States",
-  "dateOfBirth": "1990-05-15",
-  "sex": "M",
-  "expirationDate": "2030-05-14"
-}
 `;
-```
-
-### G-28 Prompt Template
-
-```typescript
-const G28_EXTRACTION_PROMPT = `
-Analyze this G-28 immigration form and extract the following information.
-Return ONLY valid JSON with no additional text.
-
-Fields to extract:
-- attorneyName: Full name of attorney or representative
-- firmName: Law firm or organization name (null if individual)
-- street: Street address
-- city: City
-- state: State (2-letter code)
-- zipCode: ZIP code
-- phone: Phone number
-- email: Email address (null if not visible)
-- clientName: Name of the client/applicant
-- alienNumber: A-Number if present (null if not visible)
-
-If a field is not visible or unclear, use null.
-`;
-```
-
-### LLM Configuration
-
-```typescript
-interface LLMConfig {
-  provider: 'anthropic' | 'openai';
-  model: string;              // e.g., 'claude-3-sonnet-20240229'
-  maxTokens: number;
-  temperature: number;        // 0 for deterministic extraction
-  timeout: number;            // ms
-}
-
-const DEFAULT_LLM_CONFIG: LLMConfig = {
-  provider: 'anthropic',
-  model: process.env.LLM_MODEL || 'claude-3-sonnet-20240229',
-  maxTokens: 1000,
-  temperature: 0,
-  timeout: 30000,
-};
-```
-
-### Response Validation
-
-```typescript
-import { z } from 'zod';
 
 const PassportSchema = z.object({
   documentType: z.string().nullable(),
@@ -275,12 +531,6 @@ const PassportSchema = z.object({
   sex: z.enum(['M', 'F', 'X']).nullable(),
   expirationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
 });
-
-// Validate LLM response
-function validateExtraction(data: unknown): PassportData | null {
-  const result = PassportSchema.safeParse(data);
-  return result.success ? result.data : null;
-}
 ```
 
 ---

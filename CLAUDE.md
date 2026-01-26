@@ -8,7 +8,7 @@ You are the **Lead Orchestrator**. Coordinate changes across the system while ma
 
 These principles OVERRIDE default behavior and MUST be followed exactly.
 
-1. **NO HARDCODING**: All solutions must be generic, pattern-based. Use environment variables for configuration.
+1. **NO HARDCODING**: All solutions must be generic, pattern-based. Use environment variables for configuration. IMPORTANT: DO NOT HARDCODE THE VALUES FROM .env.local. If an API Key is required, USE .env or .env.local to search for the corresponding _API_KEY variable name.
 2. **ROOT CAUSE, NOT BANDAID**: Fix underlying structural issues, not symptoms.
 3. **ASK BEFORE CHANGING**: If requirements are unclear, ask questions before implementing.
 4. **FAIL FAST**: Validate inputs at boundaries. Return early on invalid state.
@@ -22,10 +22,9 @@ Document automation web app. Users upload passport and G-28 immigration forms (P
 **Target form:** https://mendrika-alma.github.io/form-submission/
 
 ## Commands
-
+CHECK IF npm run dev is already running. Only run npm run dev if not started.
 ```bash
 npm run dev      # Start Next.js dev server (localhost:3000)
-npm run build    # Production build
 npm run lint     # ESLint
 ```
 
@@ -38,14 +37,6 @@ npm run lint     # ESLint
 | Language | TypeScript (strict mode) |
 | Browser Automation | Playwright |
 | Path alias | `@/*` → `./src/*` |
-
-## Project Structure
-
-```
-src/app/           # Next.js App Router (pages, API routes)
-.agents/           # Domain-specific agent guides
-system_design_docs/ # Architecture specs, API contracts
-```
 
 ## Engineering Standards
 

@@ -35,27 +35,23 @@ export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
 // EXTRACTION TYPES
 // =============================================================================
 
-export type ExtractionMethod = 'mrz' | 'nuextract' | 'combined';
+export type ExtractionMethod = 'mrz' | 'nuextract' | 'combined' | 'passporteye';
 
 // Passport data schema (for runtime validation)
 export const PassportDataSchema = z.object({
-  documentType: z.string().nullable().optional(),
-  issuingCountry: z.string().nullable().optional(),
+  documentType: z.string(),
+  issuingCountry: z.string(),
   surname: z.string(),
   givenNames: z.string(),
-  documentNumber: z.string().nullable().optional(),
-  nationality: z.string().nullable().optional(),
+  documentNumber: z.string(),
+  nationality: z.string(),
   dateOfBirth: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
-    .nullable()
-    .optional(),
-  sex: z.enum(['M', 'F', 'X']).nullable().optional(),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format'),
+  sex: z.enum(['M', 'F', 'X']),
   expirationDate: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
-    .nullable()
-    .optional(),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format'),
 });
 
 export type PassportData = z.infer<typeof PassportDataSchema>;
@@ -68,16 +64,16 @@ export interface PassportDataWithMetadata extends PassportData {
 
 // G-28 form data schema (for runtime validation)
 export const G28DataSchema = z.object({
-  attorneyName: z.string().nullable().optional(),
-  firmName: z.string().nullable().optional(),
-  street: z.string().nullable().optional(),
-  city: z.string().nullable().optional(),
-  state: z.string().nullable().optional(),
-  zipCode: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
-  email: z.string().email().nullable().optional(),
-  clientName: z.string().nullable().optional(),
-  alienNumber: z.string().nullable().optional(),
+  attorneyName: z.string(),
+  firmName: z.string(),
+  street: z.string(),
+  city: z.string(),
+  state: z.string(),
+  zipCode: z.string(),
+  phone: z.string(),
+  email: z.string().email(),
+  clientName: z.string(),
+  alienNumber: z.string(),
 });
 
 export type G28Data = z.infer<typeof G28DataSchema>;
@@ -108,19 +104,12 @@ export type ExtractionError =
 // API RESPONSE TYPES
 // =============================================================================
 
-// Upload status
-export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
-
-// Extraction method (matches backend)
-export type ExtractionMethod = 'mrz' | 'nuextract' | 'combined';
-
 // API response types (aligned with backend ExtractApiResponse)
 export interface ExtractResponse {
   readonly success: boolean;
   readonly data?: ExtractedData;
   readonly error?: ApiError;
   readonly warnings?: readonly string[];
-  readonly warnings?: string[];
 }
 
 export interface ApiError {
@@ -147,42 +136,6 @@ export interface FileValidation {
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
-
-/**
- * Format full name from passport data
- */
-// Passport data (aligned with backend PassportDataSchema)
-export interface PassportData {
-  readonly documentType?: string | null;
-  readonly issuingCountry?: string | null;
-  readonly surname: string;
-  readonly givenNames: string;
-  readonly documentNumber?: string | null;
-  readonly nationality?: string | null;
-  readonly dateOfBirth?: string | null; // YYYY-MM-DD format
-  readonly sex?: 'M' | 'F' | 'X' | null;
-  readonly expirationDate?: string | null; // YYYY-MM-DD format
-}
-
-// Passport data with extraction metadata (for API responses)
-export interface PassportDataWithMetadata extends PassportData {
-  readonly extractionMethod: ExtractionMethod;
-  readonly confidence: number;
-}
-
-// G-28 form data (aligned with backend G28DataSchema)
-export interface G28Data {
-  readonly attorneyName?: string | null;
-  readonly firmName?: string | null;
-  readonly street?: string | null;
-  readonly city?: string | null;
-  readonly state?: string | null;
-  readonly zipCode?: string | null;
-  readonly phone?: string | null;
-  readonly email?: string | null;
-  readonly clientName?: string | null;
-  readonly alienNumber?: string | null;
-}
 
 // App state for files
 export interface AppState {
