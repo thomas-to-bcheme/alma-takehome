@@ -14,6 +14,13 @@ export function AttorneyInfoSection(): React.JSX.Element {
   return (
     <FormSection title="Attorney or Accredited Representative Information" partNumber={1}>
       <div className="space-y-6">
+        {/* Online Account Number */}
+        <Input
+          label="USCIS Online Account Number (if any)"
+          {...register('onlineAccountNumber')}
+          error={errors.onlineAccountNumber?.message}
+        />
+
         {/* Name Fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input
@@ -89,14 +96,23 @@ export function AttorneyInfoSection(): React.JSX.Element {
         />
 
         {/* Contact Fields */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
-            label="Phone Number"
+            label="Daytime Phone Number"
             type="tel"
             required
-            {...register('phone')}
-            error={errors.phone?.message}
+            {...register('daytimePhone')}
+            error={errors.daytimePhone?.message}
           />
+          <Input
+            label="Mobile Phone Number"
+            type="tel"
+            {...register('mobilePhone')}
+            error={errors.mobilePhone?.message}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
             label="Fax Number"
             type="tel"

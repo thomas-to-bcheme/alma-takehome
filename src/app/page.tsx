@@ -1,21 +1,48 @@
-import { AppStateProvider } from '@/context/AppStateContext';
+'use client';
+
+import { useMemo } from 'react';
+import { AppStateProvider, useAppState } from '@/context/AppStateContext';
+import { FormA28Provider } from '@/context/FormA28Context';
 import { UploadSection } from './UploadSection';
+import { FormA28 } from '@/components/form';
+import { mapExtractedToForm } from '@/lib/mapExtractedToForm';
+
+function MainContent(): React.JSX.Element {
+  const { uploadStatus, extractedData } = useAppState();
+  const hasExtractedData = uploadStatus === 'success';
+
+  // Map extracted data to form fields using the updated schema
+  const initialFormData = useMemo(() => {
+    if (!extractedData) {
+      return undefined;
+    }
+    return mapExtractedToForm(extractedData);
+  }, [extractedData]);
+
+  return (
+    <FormA28Provider initialData={initialFormData}>
+      {/* Collapsible Upload Section */}
+      <details className="border-b border-zinc-200 dark:border-zinc-700" open={!hasExtractedData}>
+        <summary className="cursor-pointer bg-zinc-100 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
+          Upload Documents
+        </summary>
+        <div className="p-4">
+          <UploadSection />
+        </div>
+      </details>
+
+      {/* Main Form */}
+      <FormA28 />
+    </FormA28Provider>
+  );
+}
 
 export default function Home(): React.JSX.Element {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 font-sans dark:bg-zinc-950">
-      <main className="w-full max-w-2xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Document Automation
-          </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Upload your documents to extract and auto-fill form data
-          </p>
-        </div>
-
+    <div className="min-h-screen bg-[#f5f5f5] p-4 font-sans md:p-8 dark:bg-zinc-950">
+      <main className="mx-auto max-w-[800px] overflow-hidden rounded-lg bg-white shadow-lg dark:bg-zinc-900">
         <AppStateProvider>
-          <UploadSection />
+          <MainContent />
         </AppStateProvider>
       </main>
     </div>

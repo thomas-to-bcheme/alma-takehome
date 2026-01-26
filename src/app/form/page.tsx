@@ -29,12 +29,15 @@ const mockExtractedData: Partial<FormA28Data> = {
   city: 'New York',
   state: 'NY',
   zipCode: '10001',
-  phone: '212-555-1234',
+  daytimePhone: '212-555-1234',
   email: 'jane.smith@smithlaw.com',
+  alienNumber: 'A123456789',
+
+  // Part 2: Eligibility
   isAttorney: true,
   barNumber: 'NY123456',
-  licensingAuthority: 'New York State Bar',
-  alienNumber: 'A123456789',
+  isSubjectToOrders: 'am_not',
+  lawFirmOrOrganization: 'Smith & Associates Law Firm',
 };
 
 export default function FormPreviewPage(): React.JSX.Element {

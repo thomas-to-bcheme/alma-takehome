@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormContext } from 'react-hook-form';
-import { FormSection, Checkbox, Input, DateInput } from '@/components/ui';
+import { FormSection, Checkbox, DateInput } from '@/components/ui';
 import type { FormA28Data } from '@/lib/validation/formA28Schema';
 
 export function ClientConsentSection(): React.JSX.Element {
@@ -13,47 +13,58 @@ export function ClientConsentSection(): React.JSX.Element {
   return (
     <FormSection title="Applicant/Petitioner/Requestor Consent to Representation" partNumber={4}>
       <div className="space-y-6">
-        {/* Consent Explanation */}
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          I have requested the representation of and consented to being represented by the attorney
-          or accredited representative named in Part 1 of this form. I understand that by signing
-          this form, I authorize my representative to take certain actions on my behalf.
-        </p>
-
-        {/* Consent Checkboxes */}
+        {/* Subsection A: Consent to Representation and Release of Information */}
         <div className="space-y-3">
-          <Checkbox
-            label="I consent to my representative's representation in my immigration matters"
-            {...register('consentRepresentation')}
-            error={errors.consentRepresentation?.message}
-          />
-          <Checkbox
-            label="I authorize disclosure of information to my representative"
-            {...register('consentDisclosure')}
-            error={errors.consentDisclosure?.message}
-          />
-          <Checkbox
-            label="I certify that I have read and understand the contents of this form"
-            {...register('consentSignature')}
-            error={errors.consentSignature?.message}
-          />
+          <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">
+            A. Consent to Representation and Release of Information
+          </h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            I have requested the representation of and consented to being represented by the attorney or
+            representative named in Part 1 of this form. I consent to the disclosure to the named attorney
+            or representative of any records pertaining to me that are relevant to this matter.
+          </p>
         </div>
 
-        {/* Signature Fields */}
-        <div className="grid grid-cols-1 gap-4 border-t border-zinc-200 pt-4 md:grid-cols-2 dark:border-zinc-700">
-          <Input
-            label="Client Signature (Type Full Legal Name)"
-            required
-            placeholder="Type your full legal name"
-            {...register('clientSignature')}
-            error={errors.clientSignature?.message}
-          />
-          <DateInput
-            label="Date of Signature"
-            required
-            {...register('clientSignatureDate')}
-            error={errors.clientSignatureDate?.message}
-          />
+        {/* Subsection B: Options Regarding Receipt of Notices and Documents */}
+        <div className="space-y-4 border-t border-zinc-200 pt-4 dark:border-zinc-700">
+          <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-200">
+            B. Options Regarding Receipt of Notices and Documents
+          </h3>
+
+          <div className="space-y-3">
+            {/* 1.a */}
+            <Checkbox
+              label="1.a. I request that all original notices on an application or petition be sent to the business address of my attorney or representative as listed in this form."
+              {...register('notifyAttorneyOriginals')}
+              error={errors.notifyAttorneyOriginals?.message}
+            />
+
+            {/* 1.b */}
+            <Checkbox
+              label="1.b. I request that any important documents that I receive be sent to the business address of my attorney or representative."
+              {...register('notifyAttorneyImportant')}
+              error={errors.notifyAttorneyImportant?.message}
+            />
+
+            {/* 1.c */}
+            <Checkbox
+              label="1.c. I request that important documentation be sent to me at my mailing address."
+              {...register('notifyClientMailing')}
+              error={errors.notifyClientMailing?.message}
+            />
+          </div>
+        </div>
+
+        {/* Field 2: Date of Signature */}
+        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-700">
+          <div className="max-w-xs">
+            <DateInput
+              label="2. Date of Signature"
+              required
+              {...register('clientSignatureDate')}
+              error={errors.clientSignatureDate?.message}
+            />
+          </div>
         </div>
       </div>
     </FormSection>

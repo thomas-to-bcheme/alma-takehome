@@ -1,5 +1,8 @@
 import type { AcceptedMimeType } from '@/types';
 
+// Form revision
+export const FORM_REVISION = 'Rev. 04/2025';
+
 // File size limits
 export const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 export const MAX_SIZE_MB = 10;

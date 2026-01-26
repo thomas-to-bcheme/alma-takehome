@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useForm, FormProvider, type UseFormReturn, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { formA28Schema, defaultFormA28Values, type FormA28Data } from '@/lib/validation/formA28Schema';
@@ -31,6 +31,16 @@ export function FormA28Provider({
     },
     mode: 'onBlur',
   });
+
+  // Reset form when initialData changes (e.g., after extraction)
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        ...defaultFormA28Values,
+        ...initialData,
+      });
+    }
+  }, [initialData, form]);
 
   const handleSubmit = (data: FormA28Data): void => {
     onSubmit?.(data);

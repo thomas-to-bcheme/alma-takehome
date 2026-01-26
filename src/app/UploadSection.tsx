@@ -19,6 +19,7 @@ export function UploadSection(): React.JSX.Element {
     setUploadStatus,
     setErrorMessage,
     setSuccessMessage,
+    setExtractedData,
   } = useAppState();
 
   const isUploading = uploadStatus === 'uploading';
@@ -77,6 +78,11 @@ export function UploadSection(): React.JSX.Element {
         return;
       }
 
+      // Store extracted data for form population
+      if (result.data) {
+        setExtractedData(result.data);
+      }
+
       setUploadStatus('success');
       setSuccessMessage('Documents processed successfully. Data extraction complete.');
     } catch (error) {
@@ -84,7 +90,7 @@ export function UploadSection(): React.JSX.Element {
       setUploadStatus('error');
       setErrorMessage('Upload failed. Please try again');
     }
-  }, [passportFile, g28File, setUploadStatus, setErrorMessage, setSuccessMessage]);
+  }, [passportFile, g28File, setUploadStatus, setErrorMessage, setSuccessMessage, setExtractedData]);
 
   return (
     <Card className="w-full max-w-2xl">

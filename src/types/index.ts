@@ -74,6 +74,7 @@ export const G28DataSchema = z.object({
   email: z.string().email(),
   clientName: z.string(),
   alienNumber: z.string(),
+  barNumber: z.string().optional(),
 });
 
 export type G28Data = z.infer<typeof G28DataSchema>;
@@ -144,6 +145,7 @@ export interface AppState {
   readonly uploadStatus: UploadStatus;
   readonly errorMessage: string | null;
   readonly successMessage: string | null;
+  readonly extractedData: ExtractedData | null;
 }
 
 export interface AppStateContextValue extends AppState {
@@ -152,6 +154,7 @@ export interface AppStateContextValue extends AppState {
   setUploadStatus: (status: UploadStatus) => void;
   setErrorMessage: (message: string | null) => void;
   setSuccessMessage: (message: string | null) => void;
+  setExtractedData: (data: ExtractedData | null) => void;
   resetState: () => void;
 }
 

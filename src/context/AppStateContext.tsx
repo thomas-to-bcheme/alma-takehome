@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
-import type { AppState, AppStateContextValue, UploadStatus } from '@/types';
+import type { AppState, AppStateContextValue, UploadStatus, ExtractedData } from '@/types';
 
 const initialState: AppState = {
   passportFile: null,
@@ -9,6 +9,7 @@ const initialState: AppState = {
   uploadStatus: 'idle',
   errorMessage: null,
   successMessage: null,
+  extractedData: null,
 };
 
 const AppStateContext = createContext<AppStateContextValue | null>(null);
@@ -23,6 +24,7 @@ export function AppStateProvider({ children }: AppStateProviderProps): React.JSX
   const [uploadStatus, setUploadStatusState] = useState<UploadStatus>(initialState.uploadStatus);
   const [errorMessage, setErrorMessageState] = useState<string | null>(initialState.errorMessage);
   const [successMessage, setSuccessMessageState] = useState<string | null>(initialState.successMessage);
+  const [extractedData, setExtractedDataState] = useState<ExtractedData | null>(initialState.extractedData);
 
   const setPassportFile = useCallback((file: File | null) => {
     setPassportFileState(file);
@@ -58,12 +60,17 @@ export function AppStateProvider({ children }: AppStateProviderProps): React.JSX
     }
   }, []);
 
+  const setExtractedData = useCallback((data: ExtractedData | null) => {
+    setExtractedDataState(data);
+  }, []);
+
   const resetState = useCallback(() => {
     setPassportFileState(null);
     setG28FileState(null);
     setUploadStatusState('idle');
     setErrorMessageState(null);
     setSuccessMessageState(null);
+    setExtractedDataState(null);
   }, []);
 
   const value = useMemo<AppStateContextValue>(
@@ -73,11 +80,13 @@ export function AppStateProvider({ children }: AppStateProviderProps): React.JSX
       uploadStatus,
       errorMessage,
       successMessage,
+      extractedData,
       setPassportFile,
       setG28File,
       setUploadStatus,
       setErrorMessage,
       setSuccessMessage,
+      setExtractedData,
       resetState,
     }),
     [
@@ -86,11 +95,13 @@ export function AppStateProvider({ children }: AppStateProviderProps): React.JSX
       uploadStatus,
       errorMessage,
       successMessage,
+      extractedData,
       setPassportFile,
       setG28File,
       setUploadStatus,
       setErrorMessage,
       setSuccessMessage,
+      setExtractedData,
       resetState,
     ]
   );

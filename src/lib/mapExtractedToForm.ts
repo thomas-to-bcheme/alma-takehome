@@ -47,15 +47,25 @@ export function mapExtractedToForm(extracted: ExtractedData): Partial<FormA28Dat
     result.attorneyFirstName = attorneyNameParts.firstName;
     result.attorneyMiddleName = attorneyNameParts.middleName;
 
-    // Firm and address
+    // Firm and address (Part 1)
     result.firmName = g28.firmName || '';
     result.street = g28.street || '';
     result.city = g28.city || '';
     result.state = g28.state || '';
     result.zipCode = g28.zipCode || '';
 
+    // Map firmName to lawFirmOrOrganization for Part 2 field 1.d
+    if (g28.firmName) {
+      result.lawFirmOrOrganization = g28.firmName;
+    }
+
+    // Map barNumber for Part 2 field 1.b
+    if (g28.barNumber) {
+      result.barNumber = g28.barNumber;
+    }
+
     // Contact
-    result.phone = g28.phone || '';
+    result.daytimePhone = g28.phone || '';
     result.email = g28.email || '';
 
     // Client's alien number

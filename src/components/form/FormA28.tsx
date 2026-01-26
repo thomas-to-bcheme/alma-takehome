@@ -3,6 +3,7 @@
 import { useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui';
 import { useFormA28 } from '@/context/FormA28Context';
+import { FormHeader } from './FormHeader';
 import { AttorneyInfoSection } from './AttorneyInfoSection';
 import { EligibilitySection } from './EligibilitySection';
 import { PassportInfoSection } from './PassportInfoSection';
@@ -27,28 +28,25 @@ export function FormA28({ onFillForm, isSubmitting = false }: FormA28Props): Rea
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6">
       {/* Form Header */}
-      <div className="rounded-lg bg-[#003366] p-6 text-white">
-        <h1 className="text-2xl font-bold">Form A-28</h1>
-        <p className="mt-1 text-blue-100">
-          Notice of Entry of Appearance as Attorney or Accredited Representative
-        </p>
-      </div>
+      <FormHeader />
 
       {/* Form Sections */}
-      <AttorneyInfoSection />
-      <EligibilitySection />
-      <PassportInfoSection />
-      <ClientConsentSection />
-      <AttorneySignatureSection />
+      <div className="space-y-6 p-4">
+        <AttorneyInfoSection />
+        <EligibilitySection />
+        <PassportInfoSection />
+        <ClientConsentSection />
+        <AttorneySignatureSection />
 
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-        <Button type="button" variant="secondary" disabled={isSubmitting}>
-          Save Draft
-        </Button>
-        <Button type="submit" isLoading={isSubmitting}>
-          Fill Target Form
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+          <Button type="button" variant="secondary" disabled={isSubmitting}>
+            Save Draft
+          </Button>
+          <Button type="submit" isLoading={isSubmitting}>
+            Fill Target Form
+          </Button>
+        </div>
       </div>
     </form>
   );

@@ -73,13 +73,21 @@ export function PassportInfoSection(): React.JSX.Element {
         </div>
 
         {/* Personal Info */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <DateInput
             label="Date of Birth"
             required
             {...register('dateOfBirth')}
             error={errors.dateOfBirth?.message}
           />
+          <Input
+            label="Place of Birth (City, Country)"
+            {...register('placeOfBirth')}
+            error={errors.placeOfBirth?.message}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Controller
             name="sex"
             control={control}
