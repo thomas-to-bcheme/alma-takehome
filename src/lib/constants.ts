@@ -61,6 +61,18 @@ export const PASSPORTEYE_DEFAULTS = {
   ENABLED: true,
 } as const;
 
+// G-28 Claude extraction service defaults
+export const G28_CLAUDE_DEFAULTS = {
+  TIMEOUT_MS: 60000,
+  ENABLED: true,
+} as const;
+
+// Form automation service defaults
+export const FORM_AUTOMATION_DEFAULTS = {
+  TIMEOUT_MS: 120000,
+  ENABLED: true,
+} as const;
+
 // US States for address dropdowns
 export const US_STATES = [
   { value: 'AL', label: 'Alabama' },

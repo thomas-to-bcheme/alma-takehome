@@ -67,14 +67,22 @@ export const G28DataSchema = z.object({
   attorneyName: z.string(),
   firmName: z.string(),
   street: z.string(),
+  suite: z.string().optional(),
   city: z.string(),
   state: z.string(),
   zipCode: z.string(),
   phone: z.string(),
+  fax: z.string().optional(),
   email: z.string().email(),
   clientName: z.string(),
   alienNumber: z.string(),
   barNumber: z.string().optional(),
+  licensingAuthority: z.string().optional(),
+  // Eligibility flags
+  isAttorney: z.boolean().optional(),
+  isAccreditedRep: z.boolean().optional(),
+  organizationName: z.string().optional(),
+  accreditationDate: z.string().optional(),
 });
 
 export type G28Data = z.infer<typeof G28DataSchema>;
@@ -161,4 +169,35 @@ export interface AppStateContextValue extends AppState {
 // Helper to format full name from passport data
 export function formatFullName(passport: PassportData): string {
   return `${passport.givenNames} ${passport.surname}`.trim();
+}
+
+// =============================================================================
+// FORM AUTOMATION TYPES
+// =============================================================================
+
+export type FieldStatus = 'filled' | 'skipped' | 'failed';
+
+export interface FieldResult {
+  readonly fieldName: string;
+  readonly status: FieldStatus;
+  readonly value?: string;
+  readonly error?: string;
+}
+
+export interface FormFillResult {
+  readonly success: boolean;
+  readonly filledFields: readonly FieldResult[];
+  readonly skippedFields: readonly FieldResult[];
+  readonly failedFields: readonly FieldResult[];
+  readonly screenshotBase64?: string;
+  readonly durationMs: number;
+  readonly error?: string;
+}
+
+export type AutomationStatus = 'idle' | 'running' | 'success' | 'error';
+
+export interface AutomationState {
+  readonly status: AutomationStatus;
+  readonly result: FormFillResult | null;
+  readonly errorMessage: string | null;
 }

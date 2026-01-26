@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { NUEXTRACT_DEFAULTS, PASSPORTEYE_DEFAULTS } from '@/lib/constants';
+import {
+  NUEXTRACT_DEFAULTS,
+  PASSPORTEYE_DEFAULTS,
+  G28_CLAUDE_DEFAULTS,
+  FORM_AUTOMATION_DEFAULTS,
+} from '@/lib/constants';
 
 /**
  * Environment configuration schema for extraction services
@@ -15,6 +20,20 @@ const ExtractionConfigSchema = z.object({
       apiUrl: z.string().url(),
       timeoutMs: z.number().int().positive().default(PASSPORTEYE_DEFAULTS.TIMEOUT_MS),
       enabled: z.boolean().default(PASSPORTEYE_DEFAULTS.ENABLED),
+    })
+    .optional(),
+  g28Claude: z
+    .object({
+      apiUrl: z.string().url(),
+      timeoutMs: z.number().int().positive().default(G28_CLAUDE_DEFAULTS.TIMEOUT_MS),
+      enabled: z.boolean().default(G28_CLAUDE_DEFAULTS.ENABLED),
+    })
+    .optional(),
+  formAutomation: z
+    .object({
+      apiUrl: z.string().url(),
+      timeoutMs: z.number().int().positive().default(FORM_AUTOMATION_DEFAULTS.TIMEOUT_MS),
+      enabled: z.boolean().default(FORM_AUTOMATION_DEFAULTS.ENABLED),
     })
     .optional(),
 });
@@ -38,6 +57,30 @@ export function loadExtractionConfig(): ExtractionConfig {
       }
     : undefined;
 
+  // Build g28Claude config only if API URL is provided
+  const g28ClaudeApiUrl = process.env.G28_CLAUDE_API_URL;
+  const g28ClaudeConfig = g28ClaudeApiUrl
+    ? {
+        apiUrl: g28ClaudeApiUrl,
+        timeoutMs: process.env.G28_CLAUDE_TIMEOUT_MS
+          ? parseInt(process.env.G28_CLAUDE_TIMEOUT_MS, 10)
+          : G28_CLAUDE_DEFAULTS.TIMEOUT_MS,
+        enabled: process.env.G28_CLAUDE_ENABLED !== 'false',
+      }
+    : undefined;
+
+  // Build formAutomation config only if API URL is provided
+  const formAutomationApiUrl = process.env.FORM_AUTOMATION_API_URL;
+  const formAutomationConfig = formAutomationApiUrl
+    ? {
+        apiUrl: formAutomationApiUrl,
+        timeoutMs: process.env.FORM_AUTOMATION_TIMEOUT_MS
+          ? parseInt(process.env.FORM_AUTOMATION_TIMEOUT_MS, 10)
+          : FORM_AUTOMATION_DEFAULTS.TIMEOUT_MS,
+        enabled: process.env.FORM_AUTOMATION_ENABLED !== 'false',
+      }
+    : undefined;
+
   const rawConfig = {
     nuextract: {
       apiUrl: process.env.NUEXTRACT_API_URL,
@@ -47,6 +90,8 @@ export function loadExtractionConfig(): ExtractionConfig {
         : NUEXTRACT_DEFAULTS.TIMEOUT_MS,
     },
     passporteye: passporteyeConfig,
+    g28Claude: g28ClaudeConfig,
+    formAutomation: formAutomationConfig,
   };
 
   const result = ExtractionConfigSchema.safeParse(rawConfig);

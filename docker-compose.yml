@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  passporteye:
+    build: ./passporteye-service
+    ports:
+      - "8000:8000"
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  g28-extraction:
+    build: ./g28-extraction-service
+    ports:
+      - "8001:8001"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=claude-sonnet-4-20250514
+      - ALLOWED_ORIGINS=http://localhost:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  form-automation:
+    build: ./form-automation-service
+    ports:
+      - "8002:8002"
+    environment:
+      - TARGET_FORM_URL=https://mendrika-alma.github.io/form-submission/
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - HEADLESS=true
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

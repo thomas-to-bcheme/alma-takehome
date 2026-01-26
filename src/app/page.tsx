@@ -1,15 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { AppStateProvider, useAppState } from '@/context/AppStateContext';
 import { FormA28Provider } from '@/context/FormA28Context';
 import { UploadSection } from './UploadSection';
 import { FormA28 } from '@/components/form';
 import { mapExtractedToForm } from '@/lib/mapExtractedToForm';
+import { AutomationProgress, ScreenshotPreview } from '@/components/automation';
+import type { AutomationStatus, FormFillResult } from '@/types';
+import type { FormA28Data } from '@/lib/validation/formA28Schema';
 
 function MainContent(): React.JSX.Element {
-  const { uploadStatus, extractedData } = useAppState();
-  const hasExtractedData = uploadStatus === 'success';
+  const { extractedData } = useAppState();
+  const [automationStatus, setAutomationStatus] = useState<AutomationStatus>('idle');
+  const [automationResult, setAutomationResult] = useState<FormFillResult | null>(null);
+  const [automationError, setAutomationError] = useState<string | null>(null);
 
   // Map extracted data to form fields using the updated schema
   const initialFormData = useMemo(() => {
@@ -19,20 +24,71 @@ function MainContent(): React.JSX.Element {
     return mapExtractedToForm(extractedData);
   }, [extractedData]);
 
+  // Handle form submission to trigger automation
+  const handleFillForm = useCallback(async (data: FormA28Data): Promise<void> => {
+    setAutomationStatus('running');
+    setAutomationResult(null);
+    setAutomationError(null);
+
+    try {
+      const response = await fetch('/api/fill-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ formData: data }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message ?? 'Form fill failed');
+      }
+
+      setAutomationResult(result.data);
+      setAutomationStatus('success');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setAutomationError(errorMessage);
+      setAutomationStatus('error');
+    }
+  }, []);
+
+  // Handle closing the screenshot preview
+  const handleClosePreview = useCallback(() => {
+    setAutomationResult(null);
+    setAutomationStatus('idle');
+  }, []);
+
   return (
     <FormA28Provider initialData={initialFormData}>
-      {/* Collapsible Upload Section */}
-      <details className="border-b border-zinc-200 dark:border-zinc-700" open={!hasExtractedData}>
-        <summary className="cursor-pointer bg-zinc-100 px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
-          Upload Documents
-        </summary>
-        <div className="p-4">
-          <UploadSection />
+      {/* Upload Section */}
+      <div className="border-b border-zinc-200 p-4 dark:border-zinc-700">
+        <UploadSection />
+      </div>
+
+      {/* Automation Status */}
+      {automationStatus !== 'idle' && !automationResult && (
+        <div className="border-b border-zinc-200 p-4 dark:border-zinc-700">
+          <AutomationProgress
+            status={automationStatus}
+            message={automationError ?? undefined}
+          />
         </div>
-      </details>
+      )}
+
+      {/* Screenshot Preview */}
+      {automationResult && (
+        <div className="border-b border-zinc-200 p-4 dark:border-zinc-700">
+          <ScreenshotPreview result={automationResult} onClose={handleClosePreview} />
+        </div>
+      )}
 
       {/* Main Form */}
-      <FormA28 />
+      <FormA28
+        onFillForm={handleFillForm}
+        isSubmitting={automationStatus === 'running'}
+      />
     </FormA28Provider>
   );
 }
