@@ -62,39 +62,41 @@ function MainContent(): React.JSX.Element {
 
   return (
     <FormA28Provider initialData={initialFormData}>
-      {/* Upload Section */}
-      <div className="border-b border-zinc-200 p-4 dark:border-zinc-700">
+      {/* Upload Section Card */}
+      <section className="overflow-hidden rounded-lg bg-white shadow-lg dark:bg-zinc-900">
         <UploadSection />
-      </div>
+      </section>
 
-      {/* Automation Status */}
+      {/* Automation Status Card */}
       {automationStatus !== 'idle' && !automationResult && (
-        <div className="border-b border-zinc-200 p-4 dark:border-zinc-700">
+        <section className="overflow-hidden rounded-lg bg-white p-4 shadow-lg dark:bg-zinc-900">
           <AutomationProgress
             status={automationStatus}
             message={automationError ?? undefined}
           />
-        </div>
+        </section>
       )}
 
-      {/* Screenshot Preview */}
+      {/* Screenshot Preview Card */}
       {automationResult && (
-        <div className="border-b border-zinc-200 p-4 dark:border-zinc-700">
+        <section className="overflow-hidden rounded-lg bg-white p-4 shadow-lg dark:bg-zinc-900">
           <ScreenshotPreview result={automationResult} onClose={handleClosePreview} />
-        </div>
+        </section>
       )}
 
-      {/* Main Form - G-28 Form Structure
+      {/* Form Card - G-28 Form Structure
        * Part 1: Information About Attorney or Representative
        * Part 2: Eligibility Information for Attorney or Representative
        * Part 3: Passport Information for the Beneficiary
        * Part 4: Client's Consent to Representation and Signature
        * Part 5: Signature of Attorney or Representative
        */}
-      <FormA28
-        onFillForm={handleFillForm}
-        isSubmitting={automationStatus === 'running'}
-      />
+      <section className="overflow-hidden rounded-lg bg-white shadow-lg dark:bg-zinc-900">
+        <FormA28
+          onFillForm={handleFillForm}
+          isSubmitting={automationStatus === 'running'}
+        />
+      </section>
     </FormA28Provider>
   );
 }
@@ -102,7 +104,7 @@ function MainContent(): React.JSX.Element {
 export default function Home(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-alma-surface p-4 font-sans md:p-8 dark:bg-zinc-950">
-      <main className="mx-auto max-w-[800px] overflow-hidden rounded-lg bg-white shadow-lg dark:bg-zinc-900">
+      <main className="mx-auto flex max-w-[800px] flex-col gap-6">
         <AppStateProvider>
           <MainContent />
         </AppStateProvider>

@@ -4,7 +4,7 @@ import { FORM_REVISION } from '@/lib/constants';
 
 export function FormHeader(): React.JSX.Element {
   return (
-    <header className="border-b-2 border-alma-primary bg-alma-surface p-4">
+    <header className="border-b-2 border-alma-primary bg-white p-4 dark:bg-zinc-900">
       <div className="flex items-center justify-between">
         {/* Left: Logo placeholder */}
         <div className="flex h-20 w-20 items-center justify-center border-2 border-alma-primary">
