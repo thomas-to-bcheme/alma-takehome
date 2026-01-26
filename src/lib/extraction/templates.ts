@@ -30,13 +30,16 @@ export const G28_TEMPLATE = {
   attorneyName: '',
   firmName: '',
   street: '',
+  suite: '',
   city: '',
   state: '',
   zipCode: '',
   phone: '',
+  fax: '',
   email: '',
   clientName: '',
   alienNumber: '',
+  barNumber: '',
 } as const;
 
 export type G28Template = typeof G28_TEMPLATE;

@@ -13,9 +13,11 @@ const mockExtractedData: Partial<FormA28Data> = {
   clientFirstName: 'JOHN',
   clientMiddleName: 'WILLIAM',
   passportNumber: 'AB1234567',
-  passportCountry: 'USA',
-  passportExpirationDate: '2030-01-15',
+  countryOfIssue: 'USA',
+  dateOfIssue: '2020-01-15',
+  dateOfExpiration: '2030-01-15',
   dateOfBirth: '1985-03-22',
+  placeOfBirth: 'New York, USA',
   sex: 'M',
   nationality: 'UNITED STATES',
 
@@ -25,7 +27,8 @@ const mockExtractedData: Partial<FormA28Data> = {
   attorneyMiddleName: 'Elizabeth',
   firmName: 'Smith & Associates Law Firm',
   street: '123 Legal Avenue',
-  suite: 'Suite 500',
+  aptSteFlr: 'Ste',
+  aptSteFlrNumber: '500',
   city: 'New York',
   state: 'NY',
   zipCode: '10001',
@@ -35,6 +38,7 @@ const mockExtractedData: Partial<FormA28Data> = {
 
   // Part 2: Eligibility
   isAttorney: true,
+  licensingAuthority: 'New York',
   barNumber: 'NY123456',
   isSubjectToOrders: 'am_not',
   lawFirmOrOrganization: 'Smith & Associates Law Firm',

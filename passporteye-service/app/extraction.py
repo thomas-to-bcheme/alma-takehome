@@ -33,10 +33,12 @@ class ExtractionResult(TypedDict):
     error: str | None
 
 
-def format_date_yymmdd_to_iso(date_str: str) -> str:
+from datetime import datetime
+
+def format_dob_yymmdd_to_iso(date_str: str) -> str:
     """
-    Convert MRZ date format (YYMMDD) to ISO format (YYYY-MM-DD).
-    Assumes dates before 30 are 2000s, otherwise 1900s.
+    Convert MRZ date of birth (YYMMDD) to ISO format (YYYY-MM-DD).
+    DOB must be in the past, so we pick the century that results in a past date.
     """
     if not date_str or len(date_str) != 6:
         return ""
@@ -45,8 +47,46 @@ def format_date_yymmdd_to_iso(date_str: str) -> str:
     month = date_str[2:4]
     day = date_str[4:6]
 
-    # Determine century: dates < 30 are 2000s, >= 30 are 1900s
-    full_year = 2000 + year if year < 30 else 1900 + year
+    current_year = datetime.now().year
+    current_century = (current_year // 100) * 100  # e.g., 2000
+
+    # Try current century first (2000s)
+    full_year = current_century + year
+
+    # If the resulting date is in the future, use previous century
+    if full_year > current_year:
+        full_year = (current_century - 100) + year
+
+    return f"{full_year}-{month}-{day}"
+
+
+def format_expiration_yymmdd_to_iso(date_str: str) -> str:
+    """
+    Convert MRZ expiration date (YYMMDD) to ISO format (YYYY-MM-DD).
+    Expiration dates are typically in the future or recent past (within ~10 years).
+    Passports are valid for up to 10 years, so we use a window approach.
+    """
+    if not date_str or len(date_str) != 6:
+        return ""
+
+    year = int(date_str[:2])
+    month = date_str[2:4]
+    day = date_str[4:6]
+
+    current_year = datetime.now().year
+    current_century = (current_year // 100) * 100  # e.g., 2000
+
+    # Expiration dates should be within a reasonable window
+    # Max ~10 years in future, ~10 years in past (for expired passports)
+    full_year_2000s = current_century + year
+    full_year_1900s = (current_century - 100) + year
+
+    # Choose the year that falls within reasonable bounds
+    # Prefer 2000s if it's within 20 years of current year
+    if abs(full_year_2000s - current_year) <= 20:
+        full_year = full_year_2000s
+    else:
+        full_year = full_year_1900s
 
     return f"{full_year}-{month}-{day}"
 
@@ -109,9 +149,9 @@ def extract_from_image(file_content: bytes, filename: str) -> ExtractionResult:
             "givenNames": mrz_data.get("names", ""),
             "documentNumber": mrz_data.get("number", ""),
             "nationality": mrz_data.get("nationality", ""),
-            "dateOfBirth": format_date_yymmdd_to_iso(mrz_data.get("date_of_birth", "")),
+            "dateOfBirth": format_dob_yymmdd_to_iso(mrz_data.get("date_of_birth", "")),
             "sex": normalize_sex(mrz_data.get("sex")),
-            "expirationDate": format_date_yymmdd_to_iso(mrz_data.get("expiration_date", "")),
+            "expirationDate": format_expiration_yymmdd_to_iso(mrz_data.get("expiration_date", "")),
         }
 
         # Calculate confidence based on check digit validity

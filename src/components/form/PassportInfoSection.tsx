@@ -50,25 +50,26 @@ export function PassportInfoSection(): React.JSX.Element {
             error={errors.passportNumber?.message}
           />
           <Input
-            label="Issuing Country"
+            label="Country of Issue"
             required
-            {...register('passportCountry')}
-            error={errors.passportCountry?.message}
+            {...register('countryOfIssue')}
+            error={errors.countryOfIssue?.message}
           />
         </div>
 
         {/* Passport Dates */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <DateInput
-            label="Issue Date"
-            {...register('passportIssueDate')}
-            error={errors.passportIssueDate?.message}
+            label="Date of Issue"
+            required
+            {...register('dateOfIssue')}
+            error={errors.dateOfIssue?.message}
           />
           <DateInput
-            label="Expiration Date"
+            label="Date of Expiration"
             required
-            {...register('passportExpirationDate')}
-            error={errors.passportExpirationDate?.message}
+            {...register('dateOfExpiration')}
+            error={errors.dateOfExpiration?.message}
           />
         </div>
 
@@ -82,6 +83,7 @@ export function PassportInfoSection(): React.JSX.Element {
           />
           <Input
             label="Place of Birth (City, Country)"
+            required
             {...register('placeOfBirth')}
             error={errors.placeOfBirth?.message}
           />

@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAppState } from '@/context/AppStateContext';
-import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, Alert } from '@/components/ui';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Alert } from '@/components/ui';
 import { UploadZone, FilePreview, UploadProgress } from '@/components/upload';
 import { ACCEPTED_EXTENSIONS, ACCEPTED_EXTENSIONS_PDF_ONLY } from '@/lib/constants';
 import type { ExtractResponse } from '@/types';
@@ -23,7 +23,7 @@ export function UploadSection(): React.JSX.Element {
   } = useAppState();
 
   const isUploading = uploadStatus === 'uploading';
-  const canSubmit = passportFile !== null && !isUploading;
+  const previousPassportRef = useRef<File | null>(null);
 
   const handlePassportSelect = useCallback(
     (file: File) => {
@@ -92,12 +92,20 @@ export function UploadSection(): React.JSX.Element {
     }
   }, [passportFile, g28File, setUploadStatus, setErrorMessage, setSuccessMessage, setExtractedData]);
 
+  // Auto-extract when passport file changes
+  useEffect(() => {
+    if (passportFile && passportFile !== previousPassportRef.current && uploadStatus === 'idle') {
+      previousPassportRef.current = passportFile;
+      handleSubmit();
+    }
+  }, [passportFile, uploadStatus, handleSubmit]);
+
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader>
         <CardTitle>Upload Documents</CardTitle>
         <CardDescription>
-          Upload your passport and optional G-28 form to extract data automatically.
+          Upload your passport to extract data automatically. G-28 form is optional.
         </CardDescription>
       </CardHeader>
 
@@ -172,17 +180,6 @@ export function UploadSection(): React.JSX.Element {
 
         {/* Upload progress */}
         <UploadProgress status={uploadStatus} />
-
-        {/* Submit button */}
-        <Button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          isLoading={isUploading}
-          size="lg"
-          className="w-full"
-        >
-          {isUploading ? 'Extracting Data...' : 'Extract Data'}
-        </Button>
       </CardContent>
     </Card>
   );

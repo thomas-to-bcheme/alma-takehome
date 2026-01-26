@@ -1,13 +1,20 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
-import { FormSection, Input, Select } from '@/components/ui';
+import { useFormContext, Controller } from 'react-hook-form';
+import { FormSection, Input, Select, RadioGroup } from '@/components/ui';
 import { US_STATES } from '@/lib/constants';
 import type { FormA28Data } from '@/lib/validation/formA28Schema';
+
+const APT_STE_FLR_OPTIONS = [
+  { value: 'Apt', label: 'Apt.' },
+  { value: 'Ste', label: 'Ste.' },
+  { value: 'Flr', label: 'Flr.' },
+] as const;
 
 export function AttorneyInfoSection(): React.JSX.Element {
   const {
     register,
+    control,
     formState: { errors },
   } = useFormContext<FormA28Data>();
 
@@ -50,17 +57,34 @@ export function AttorneyInfoSection(): React.JSX.Element {
         />
 
         {/* Street Address */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[3fr_1fr]">
-          <Input
-            label="Street Number and Name"
-            required
-            {...register('street')}
-            error={errors.street?.message}
+        <Input
+          label="Street Number and Name"
+          required
+          {...register('street')}
+          error={errors.street?.message}
+        />
+
+        {/* Apt/Ste/Flr Selection and Number */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr]">
+          <Controller
+            name="aptSteFlr"
+            control={control}
+            render={({ field }) => (
+              <RadioGroup
+                name="aptSteFlr"
+                label="Unit Type"
+                options={APT_STE_FLR_OPTIONS}
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.aptSteFlr?.message}
+                inline
+              />
+            )}
           />
           <Input
-            label="Apt/Ste/Flr"
-            {...register('suite')}
-            error={errors.suite?.message}
+            label="Number"
+            {...register('aptSteFlrNumber')}
+            error={errors.aptSteFlrNumber?.message}
           />
         </div>
 
@@ -122,7 +146,6 @@ export function AttorneyInfoSection(): React.JSX.Element {
           <Input
             label="Email Address"
             type="email"
-            required
             {...register('email')}
             error={errors.email?.message}
           />

@@ -35,22 +35,22 @@ export function ClientConsentSection(): React.JSX.Element {
             {/* 1.a */}
             <Checkbox
               label="1.a. I request that all original notices on an application or petition be sent to the business address of my attorney or representative as listed in this form."
-              {...register('notifyAttorneyOriginals')}
-              error={errors.notifyAttorneyOriginals?.message}
+              {...register('noticeToAttorney')}
+              error={errors.noticeToAttorney?.message}
             />
 
             {/* 1.b */}
             <Checkbox
               label="1.b. I request that any important documents that I receive be sent to the business address of my attorney or representative."
-              {...register('notifyAttorneyImportant')}
-              error={errors.notifyAttorneyImportant?.message}
+              {...register('documentsToAttorney')}
+              error={errors.documentsToAttorney?.message}
             />
 
             {/* 1.c */}
             <Checkbox
               label="1.c. I request that important documentation be sent to me at my mailing address."
-              {...register('notifyClientMailing')}
-              error={errors.notifyClientMailing?.message}
+              {...register('documentsToClient')}
+              error={errors.documentsToClient?.message}
             />
           </div>
         </div>

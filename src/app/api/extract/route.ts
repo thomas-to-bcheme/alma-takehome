@@ -133,7 +133,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ExtractRe
     let g28Result = null;
     if (g28File && g28File.size > 0) {
       const g28Buffer = Buffer.from(await g28File.arrayBuffer());
-      g28Result = await extractG28Data(g28Buffer);
+      g28Result = await extractG28Data(g28Buffer, g28File.type);
     }
 
     // Collect warnings from all extractions

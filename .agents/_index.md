@@ -21,6 +21,7 @@ This application automates immigration form processing by:
 |-------|------|-------|
 | Backend | `backend.md` | File processing, data extraction orchestration |
 | Frontend | `frontend.md` | Upload UI, state management, user feedback |
+| UI/UX | `uiux.md` | Design system, user flows, accessibility |
 | API | `api.md` | REST endpoints, request validation, response contracts |
 | AI/ML | `ai-ml.md` | OCR, MRZ parsing, LLM-based extraction |
 | Automation | `automation.md` | Browser automation, form population |
@@ -32,10 +33,13 @@ This application automates immigration form processing by:
 
 | Task | Primary Agent | Supporting Agents |
 |------|---------------|-------------------|
-| "Add file upload component" | Frontend | API |
+| "Add file upload component" | Frontend | API, UI/UX |
 | "Extract data from passport" | AI/ML | Backend |
 | "Parse MRZ code" | AI/ML | - |
 | "Create extraction endpoint" | API | Backend |
 | "Fill the web form" | Automation | - |
 | "Handle PDF conversion" | Backend | AI/ML |
+| "Design new user flow" | UI/UX | Frontend |
+| "Accessibility audit" | UI/UX | Frontend |
+| "Update color palette" | UI/UX | Frontend |
 | "Review this PR" | Orchestrator | All |

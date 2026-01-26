@@ -12,11 +12,17 @@ import {
   isPassportEyeEnabled,
   PassportEyeError,
 } from './passporteye-client';
+import {
+  extractG28WithClaude,
+  isG28ClaudeEnabled,
+  G28ClaudeError,
+  type G28ClaudeData,
+} from './g28-claude-client';
 import { extractFromMRZ } from './mrz/parser';
 import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
 
 /**
- * Extraction pipeline that orchestrates PassportEye, MRZ parsing, and NuExtract API fallback
+ * Extraction pipeline that orchestrates various extraction services
  *
  * For passports:
  * 1. Attempt PassportEye extraction (highest accuracy with Tesseract OCR)
@@ -24,7 +30,8 @@ import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
  * 3. If MRZ fails, fall back to NuExtract API
  *
  * For G-28 forms:
- * 1. Use NuExtract API directly (no MRZ available)
+ * 1. Attempt Claude Vision extraction (highest accuracy for forms)
+ * 2. If Claude Vision fails, fall back to NuExtract API
  */
 
 /**
@@ -230,18 +237,106 @@ export async function extractPassportData(
 }
 
 /**
- * Extract G-28 form data from an image buffer
+ * Map Claude extraction result to G28Data format
+ */
+function mapClaudeToG28Data(claudeData: G28ClaudeData): G28Data {
+  const attorney = claudeData.attorney;
+  const client = claudeData.client;
+  const eligibility = claudeData.eligibility;
+
+  // Combine attorney name parts into full name
+  const attorneyNameParts = [
+    attorney.given_name,
+    attorney.middle_name,
+    attorney.family_name,
+  ].filter(Boolean);
+  const attorneyName = attorneyNameParts.join(' ');
+
+  // Combine client name parts into full name
+  const clientNameParts = [
+    client.given_name,
+    client.middle_name,
+    client.family_name,
+  ].filter(Boolean);
+  const clientName = clientNameParts.join(' ');
+
+  return {
+    attorneyName,
+    firmName: attorney.firm_name,
+    street: attorney.address.street,
+    suite: attorney.address.suite,
+    city: attorney.address.city,
+    state: attorney.address.state,
+    zipCode: attorney.address.zip_code,
+    phone: attorney.phone,
+    email: attorney.email,
+    clientName,
+    alienNumber: client.alien_number,
+    barNumber: eligibility.bar_number,
+    // Eligibility flags
+    isAttorney: eligibility.is_attorney,
+    isAccreditedRep: eligibility.is_accredited_rep,
+  };
+}
+
+/**
+ * Extract G-28 form data from a file buffer
  *
- * Uses NuExtract API directly (G-28 forms don't have MRZ)
+ * Uses Claude Vision API as primary extraction method with NuExtract as fallback
+ *
+ * @param fileBuffer - Raw file bytes (PDF or image)
+ * @param mimeType - MIME type of the file (required for Claude Vision)
  */
 export async function extractG28Data(
-  imageBuffer: Buffer
+  fileBuffer: Buffer,
+  mimeType?: string
 ): Promise<ExtractionResult<G28Data>> {
   const errors: ExtractionError[] = [];
   const warnings: string[] = [];
 
+  // Step 1: Try Claude Vision if enabled and mimeType is provided
+  if (mimeType && isG28ClaudeEnabled()) {
+    try {
+      const claudeResult = await extractG28WithClaude(fileBuffer, mimeType);
+
+      if (claudeResult.success && claudeResult.data) {
+        // Map Claude data format to G28Data
+        const g28Data = mapClaudeToG28Data(claudeResult.data);
+
+        // Validate with Zod
+        const validation = G28DataSchema.safeParse(g28Data);
+
+        if (validation.success) {
+          return {
+            success: true,
+            data: validation.data,
+            method: 'combined', // Using 'combined' to indicate Claude Vision method
+            confidence: claudeResult.confidence,
+            errors: [],
+            warnings: [],
+          };
+        }
+
+        warnings.push('Claude Vision extracted data but validation failed, trying NuExtract fallback');
+      } else {
+        warnings.push(
+          `Claude Vision extraction failed: ${claudeResult.error ?? 'Unknown error'}, trying NuExtract fallback`
+        );
+      }
+    } catch (error) {
+      if (error instanceof G28ClaudeError) {
+        if (error.code !== 'DISABLED') {
+          warnings.push(`Claude Vision error: ${error.message}, trying NuExtract fallback`);
+        }
+      } else {
+        warnings.push('Claude Vision unexpected error, trying NuExtract fallback');
+      }
+    }
+  }
+
+  // Step 2: Fall back to NuExtract API
   try {
-    const base64 = bufferToBase64(imageBuffer);
+    const base64 = bufferToBase64(fileBuffer);
     const rawData = await extractWithNuExtract(base64, G28_TEMPLATE);
 
     // Validate with Zod

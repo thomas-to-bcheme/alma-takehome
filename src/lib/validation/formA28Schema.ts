@@ -4,6 +4,9 @@ import { z } from 'zod';
 // PART 1: Attorney/Representative Information
 // =============================================================================
 
+// Unit type for address (Apt./Ste./Flr.)
+const aptSteFlrEnum = z.enum(['Apt', 'Ste', 'Flr']).optional();
+
 const attorneyInfoSchema = z.object({
   // Online account number (USCIS Online Account Number)
   onlineAccountNumber: z.string().optional(),
@@ -16,7 +19,8 @@ const attorneyInfoSchema = z.object({
   // Address fields
   firmName: z.string().optional(),
   street: z.string().min(1, 'Street address is required'),
-  suite: z.string().optional(),
+  aptSteFlr: aptSteFlrEnum,
+  aptSteFlrNumber: z.string().optional(),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
   zipCode: z.string().min(5, 'ZIP code is required'),
@@ -26,7 +30,7 @@ const attorneyInfoSchema = z.object({
   daytimePhone: z.string().min(10, 'Daytime phone is required'),
   mobilePhone: z.string().optional(),
   fax: z.string().optional(),
-  email: z.string().email('Valid email is required'),
+  email: z.string().email('Valid email is required').optional().or(z.literal('')),
 });
 
 // =============================================================================
@@ -43,12 +47,12 @@ const passportInfoSchema = z.object({
   clientMiddleName: z.string().optional(),
 
   passportNumber: z.string().min(1, 'Passport number is required'),
-  passportCountry: z.string().min(1, 'Issuing country is required'),
-  passportIssueDate: z.string().optional(),
-  passportExpirationDate: z.string().min(1, 'Expiration date is required'),
+  countryOfIssue: z.string().min(1, 'Issuing country is required'),
+  dateOfIssue: z.string().min(1, 'Issue date is required'),
+  dateOfExpiration: z.string().min(1, 'Expiration date is required'),
 
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  placeOfBirth: z.string().optional(),
+  placeOfBirth: z.string().min(1, 'Place of birth is required'),
   sex: z.enum(['M', 'F', 'X'], { message: 'Please select sex' }),
   nationality: z.string().min(1, 'Nationality is required'),
 
@@ -67,9 +71,9 @@ const clientConsentSchema = z.object({
   clientSignature: z.string().optional(),
 
   // Notification preferences (B. Options Regarding Receipt of Notices and Documents)
-  notifyAttorneyOriginals: z.boolean().default(false),
-  notifyAttorneyImportant: z.boolean().default(false),
-  notifyClientMailing: z.boolean().default(false),
+  noticeToAttorney: z.boolean().default(false),
+  documentsToAttorney: z.boolean().default(false),
+  documentsToClient: z.boolean().default(false),
 
   // 2. Date of Signature
   clientSignatureDate: z.string().min(1, 'Signature date is required'),
@@ -121,8 +125,10 @@ export const formA28Schema = z.object({
   // 4.b - Law student name (shown when isLawStudent)
   lawStudentName: z.string().optional(),
 
-  // Legacy fields - kept optional for backward compatibility (hidden from UI)
+  // Licensing authority (shown when isAttorney)
   licensingAuthority: z.string().optional(),
+
+  // Legacy fields - kept optional for backward compatibility (hidden from UI)
   isRepresentativeCapacity: z.boolean().optional(),
   supervisingAttorneyName: z.string().optional(),
 
@@ -134,18 +140,42 @@ export const formA28Schema = z.object({
 
   // Part 5: Attorney Signature
   ...attorneySignatureSchema.shape,
-}).refine(
-  (data) => {
-    if (data.isAttorney && !data.barNumber) {
-      return false;
+})
+  .refine(
+    (data) => !data.isAttorney || data.barNumber,
+    {
+      message: 'Bar number is required for attorneys',
+      path: ['barNumber'],
     }
-    return true;
-  },
-  {
-    message: 'Bar number is required for attorneys',
-    path: ['barNumber'],
-  }
-);
+  )
+  .refine(
+    (data) => !data.isAttorney || data.licensingAuthority,
+    {
+      message: 'Licensing authority is required for attorneys',
+      path: ['licensingAuthority'],
+    }
+  )
+  .refine(
+    (data) => !data.isAccreditedRep || data.organizationName,
+    {
+      message: 'Organization name is required for accredited representatives',
+      path: ['organizationName'],
+    }
+  )
+  .refine(
+    (data) => !data.isAccreditedRep || data.accreditationDate,
+    {
+      message: 'Accreditation date is required for accredited representatives',
+      path: ['accreditationDate'],
+    }
+  )
+  .refine(
+    (data) => !data.isLawStudent || data.lawStudentName,
+    {
+      message: 'Law student name is required',
+      path: ['lawStudentName'],
+    }
+  );
 
 export type FormA28Data = z.infer<typeof formA28Schema>;
 
@@ -154,14 +184,15 @@ export type FormA28Data = z.infer<typeof formA28Schema>;
 // =============================================================================
 
 export const defaultFormA28Values: Partial<FormA28Data> = {
-  // Attorney Info
+  // Attorney Info - Part 1
   onlineAccountNumber: '',
   attorneyLastName: '',
   attorneyFirstName: '',
   attorneyMiddleName: '',
   firmName: '',
   street: '',
-  suite: '',
+  aptSteFlr: undefined,
+  aptSteFlrNumber: '',
   city: '',
   state: '',
   zipCode: '',
@@ -174,6 +205,7 @@ export const defaultFormA28Values: Partial<FormA28Data> = {
   // Eligibility - Part 2
   isAttorney: false,
   barNumber: '',
+  licensingAuthority: '',
   isSubjectToOrders: undefined,
   lawFirmOrOrganization: '',
   isAccreditedRep: false,
@@ -183,18 +215,17 @@ export const defaultFormA28Values: Partial<FormA28Data> = {
   isLawStudent: false,
   lawStudentName: '',
   // Legacy fields (hidden from UI)
-  licensingAuthority: '',
   isRepresentativeCapacity: false,
   supervisingAttorneyName: '',
 
-  // Passport Info
+  // Passport Info - Part 3
   clientLastName: '',
   clientFirstName: '',
   clientMiddleName: '',
   passportNumber: '',
-  passportCountry: '',
-  passportIssueDate: '',
-  passportExpirationDate: '',
+  countryOfIssue: '',
+  dateOfIssue: '',
+  dateOfExpiration: '',
   dateOfBirth: '',
   placeOfBirth: '',
   sex: undefined,
@@ -202,9 +233,9 @@ export const defaultFormA28Values: Partial<FormA28Data> = {
   alienNumber: '',
 
   // Client Consent - Part 4
-  notifyAttorneyOriginals: false,
-  notifyAttorneyImportant: false,
-  notifyClientMailing: false,
+  noticeToAttorney: false,
+  documentsToAttorney: false,
+  documentsToClient: false,
   clientSignatureDate: '',
   // Legacy fields (hidden from UI)
   consentRepresentation: false,

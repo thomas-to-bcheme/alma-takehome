@@ -35,6 +35,14 @@ export function EligibilitySection(): React.JSX.Element {
           {/* Nested fields for attorney (1.b, 1.c, 1.d) */}
           {isAttorney && (
             <div className="ml-6 mt-4 space-y-4 border-l-2 border-zinc-200 pl-4 dark:border-zinc-700">
+              {/* Licensing Authority */}
+              <Input
+                label="Licensing Authority (State/Jurisdiction)"
+                required
+                {...register('licensingAuthority')}
+                error={errors.licensingAuthority?.message}
+              />
+
               {/* 1.b - Bar Number */}
               <Input
                 label="1.b. Bar Number (if applicable)"
@@ -93,6 +101,7 @@ export function EligibilitySection(): React.JSX.Element {
               {/* 2.b - Organization Name */}
               <Input
                 label="2.b. Name of Recognized Organization"
+                required
                 {...register('organizationName')}
                 error={errors.organizationName?.message}
               />
@@ -100,6 +109,7 @@ export function EligibilitySection(): React.JSX.Element {
               {/* 2.c - Accreditation Date */}
               <DateInput
                 label="2.c. Date of Accreditation"
+                required
                 {...register('accreditationDate')}
                 error={errors.accreditationDate?.message}
               />
@@ -128,6 +138,7 @@ export function EligibilitySection(): React.JSX.Element {
               {/* 4.b - Law Student Name */}
               <Input
                 label="4.b. Name of Law Student or Law Graduate"
+                required
                 {...register('lawStudentName')}
                 error={errors.lawStudentName?.message}
               />

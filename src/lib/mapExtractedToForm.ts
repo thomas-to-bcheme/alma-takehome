@@ -26,10 +26,10 @@ export function mapExtractedToForm(extracted: ExtractedData): Partial<FormA28Dat
     result.clientFirstName = givenNameParts[0] || '';
     result.clientMiddleName = givenNameParts.slice(1).join(' ') || '';
 
-    // Passport details
+    // Passport details (renamed to match target form)
     result.passportNumber = passport.documentNumber || '';
-    result.passportCountry = passport.issuingCountry || '';
-    result.passportExpirationDate = passport.expirationDate || '';
+    result.countryOfIssue = passport.issuingCountry || '';
+    result.dateOfExpiration = passport.expirationDate || '';
 
     // Personal info
     result.dateOfBirth = passport.dateOfBirth || '';
@@ -50,6 +50,7 @@ export function mapExtractedToForm(extracted: ExtractedData): Partial<FormA28Dat
     // Firm and address (Part 1)
     result.firmName = g28.firmName || '';
     result.street = g28.street || '';
+    result.aptSteFlrNumber = g28.suite || '';
     result.city = g28.city || '';
     result.state = g28.state || '';
     result.zipCode = g28.zipCode || '';
@@ -64,16 +65,44 @@ export function mapExtractedToForm(extracted: ExtractedData): Partial<FormA28Dat
       result.barNumber = g28.barNumber;
     }
 
+    // Map licensingAuthority for Part 2
+    if (g28.licensingAuthority) {
+      result.licensingAuthority = g28.licensingAuthority;
+    }
+
     // Contact
     result.daytimePhone = g28.phone || '';
+    result.fax = g28.fax || '';
     result.email = g28.email || '';
 
     // Client's alien number
     result.alienNumber = g28.alienNumber || '';
 
-    // If G-28 has attorney info, likely an attorney
-    if (g28.attorneyName) {
+    // If G-28 has client name and no passport data, use G-28 client info
+    // (passport data takes precedence when available)
+    if (g28.clientName && !extracted.passport) {
+      const clientNameParts = parseClientName(g28.clientName);
+      result.clientLastName = clientNameParts.lastName;
+      result.clientFirstName = clientNameParts.firstName;
+      result.clientMiddleName = clientNameParts.middleName;
+    }
+
+    // Map eligibility flags from G-28 extraction
+    if (g28.isAttorney) {
       result.isAttorney = true;
+    } else if (g28.attorneyName || g28.barNumber) {
+      // Fallback: determine isAttorney based on attorney info or bar number
+      result.isAttorney = true;
+    }
+
+    if (g28.isAccreditedRep) {
+      result.isAccreditedRep = true;
+      if (g28.organizationName) {
+        result.organizationName = g28.organizationName;
+      }
+      if (g28.accreditationDate) {
+        result.accreditationDate = g28.accreditationDate;
+      }
     }
   }
 
@@ -121,4 +150,17 @@ function parseAttorneyName(fullName: string): {
     lastName: parts[parts.length - 1],
     middleName: parts.slice(1, -1).join(' '),
   };
+}
+
+/**
+ * Parse a client name string into parts.
+ * Similar to attorney name parsing, handles "Last, First Middle" or "First Middle Last"
+ */
+function parseClientName(fullName: string): {
+  firstName: string;
+  lastName: string;
+  middleName: string;
+} {
+  // Client names follow the same format conventions as attorney names
+  return parseAttorneyName(fullName);
 }

@@ -46,7 +46,7 @@ export function UploadProgress({ status }: UploadProgressProps): React.JSX.Eleme
             />
           </svg>
           <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            Extracting data from documents...
+            Processing documents...
           </span>
         </>
       )}

@@ -62,6 +62,7 @@ Specialized context lives in `.agents/` — load on-demand for domain work.
 |-------|-----------|
 | `backend.md` | File processing, data extraction, business logic |
 | `frontend.md` | UI components, state management, styling |
+| `uiux.md` | Design system, user flows, accessibility, visual design |
 | `api.md` | Endpoints, request/response contracts, validation |
 | `ai-ml.md` | OCR, MRZ parsing, LLM extraction |
 | `automation.md` | Browser automation, form population |
@@ -72,7 +73,7 @@ Specialized context lives in `.agents/` — load on-demand for domain work.
 2. Identify task domain from request
 3. Load relevant `.agents/*.md` for specialized context
 
-**Examples:** "Add upload component" → `frontend.md` + `api.md` | "Extract passport data" → `ai-ml.md` + `backend.md`
+**Examples:** "Add upload component" → `frontend.md` + `api.md` | "Extract passport data" → `ai-ml.md` + `backend.md` | "Design new flow" → `uiux.md` + `frontend.md`
 
 See `.agents/_index.md` for full routing rules.
 
