@@ -18,7 +18,7 @@ export function PassportInfoSection(): React.JSX.Element {
   } = useFormContext<FormA28Data>();
 
   return (
-    <FormSection title="Beneficiary/Client Information (from Passport)" partNumber={3}>
+    <FormSection title="Passport Information for the Beneficiary" partNumber={3}>
       <div className="space-y-6">
         {/* Client Name Fields */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

@@ -11,7 +11,7 @@ export function ClientConsentSection(): React.JSX.Element {
   } = useFormContext<FormA28Data>();
 
   return (
-    <FormSection title="Applicant/Petitioner/Requestor Consent to Representation" partNumber={4}>
+    <FormSection title="Client's Consent to Representation and Signature" partNumber={4}>
       <div className="space-y-6">
         {/* Subsection A: Consent to Representation and Release of Information */}
         <div className="space-y-3">

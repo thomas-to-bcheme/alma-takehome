@@ -84,7 +84,13 @@ function MainContent(): React.JSX.Element {
         </div>
       )}
 
-      {/* Main Form */}
+      {/* Main Form - G-28 Form Structure
+       * Part 1: Information About Attorney or Representative
+       * Part 2: Eligibility Information for Attorney or Representative
+       * Part 3: Passport Information for the Beneficiary
+       * Part 4: Client's Consent to Representation and Signature
+       * Part 5: Signature of Attorney or Representative
+       */}
       <FormA28
         onFillForm={handleFillForm}
         isSubmitting={automationStatus === 'running'}

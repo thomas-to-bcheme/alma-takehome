@@ -19,7 +19,7 @@ export function AttorneyInfoSection(): React.JSX.Element {
   } = useFormContext<FormA28Data>();
 
   return (
-    <FormSection title="Attorney or Accredited Representative Information" partNumber={1}>
+    <FormSection title="Information About Attorney or Representative" partNumber={1}>
       <div className="space-y-6">
         {/* Online Account Number */}
         <Input
