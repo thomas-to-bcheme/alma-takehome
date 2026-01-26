@@ -18,6 +18,11 @@ import {
   G28ClaudeError,
   type G28ClaudeData,
 } from './g28-claude-client';
+import {
+  convertPdfToImages,
+  isPdfMimeType,
+  PdfConversionError,
+} from './pdf-converter-client';
 import { extractFromMRZ } from './mrz/parser';
 import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
 
@@ -282,9 +287,65 @@ function mapClaudeToG28Data(claudeData: G28ClaudeData): G28Data {
 }
 
 /**
+ * Merge G-28 extraction results from multiple pages
+ * Takes first non-empty value for each field
+ */
+function mergeG28Results(pageResults: Partial<G28Data>[]): Partial<G28Data> {
+  const merged: Partial<G28Data> = {};
+
+  const fields: (keyof G28Data)[] = [
+    'attorneyName',
+    'firmName',
+    'street',
+    'suite',
+    'city',
+    'state',
+    'zipCode',
+    'phone',
+    'email',
+    'clientName',
+    'barNumber',
+    'isAttorney',
+    'isAccreditedRep',
+    'clientPhone',
+    'clientEmail',
+  ];
+
+  for (const field of fields) {
+    for (const result of pageResults) {
+      const value = result[field];
+      // Take first non-empty value
+      if (value !== undefined && value !== null && value !== '') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (merged as any)[field] = value;
+        break;
+      }
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Extract G-28 data from a single page image using NuExtract
+ */
+async function extractG28PageWithNuExtract(
+  pageBase64: string
+): Promise<Partial<G28Data>> {
+  try {
+    const rawData = await extractWithNuExtract(pageBase64, G28_TEMPLATE);
+    return rawData as Partial<G28Data>;
+  } catch (error) {
+    console.warn('[G28 Extraction] Page extraction failed:', error instanceof Error ? error.message : 'Unknown error');
+    return {};
+  }
+}
+
+/**
  * Extract G-28 form data from a file buffer
  *
  * Uses Claude Vision API as primary extraction method with NuExtract as fallback
+ * For PDFs, converts to page images and processes each page separately
  *
  * @param fileBuffer - Raw file bytes (PDF or image)
  * @param mimeType - MIME type of the file (required for Claude Vision)
@@ -329,7 +390,13 @@ export async function extractG28Data(
       }
     } catch (error) {
       if (error instanceof G28ClaudeError) {
-        if (error.code !== 'DISABLED') {
+        if (error.code === 'BILLING_ERROR' || error.code === 'QUOTA_ERROR') {
+          console.warn(`[G28 Extraction] Claude Vision billing/quota issue: ${error.message}`);
+          warnings.push(`Claude Vision unavailable (billing/quota issue), using NuExtract fallback`);
+        } else if (error.code === 'RATE_LIMIT_ERROR') {
+          console.warn(`[G28 Extraction] Claude Vision rate limited: ${error.message}`);
+          warnings.push(`Claude Vision rate limited, using NuExtract fallback`);
+        } else if (error.code !== 'DISABLED') {
           warnings.push(`Claude Vision error: ${error.message}, trying NuExtract fallback`);
         }
       } else {
@@ -338,14 +405,58 @@ export async function extractG28Data(
     }
   }
 
-  // Step 2: Fall back to NuExtract API
+  // Step 2: Fall back to NuExtract API with page-by-page processing for PDFs
   try {
-    const base64 = bufferToBase64(fileBuffer);
-    const rawData = await extractWithNuExtract(base64, G28_TEMPLATE);
-    console.log('[G28 Extraction] NuExtract raw result:', JSON.stringify(rawData, null, 2));
+    let pageImages: readonly string[];
+
+    // Check if file is PDF - convert to images first
+    if (isPdfMimeType(mimeType)) {
+      console.log('[G28 Extraction] PDF detected, converting to page images...');
+      try {
+        pageImages = await convertPdfToImages(fileBuffer);
+        console.log(`[G28 Extraction] Converted PDF to ${pageImages.length} page images`);
+      } catch (conversionError) {
+        if (conversionError instanceof PdfConversionError) {
+          console.error(`[G28 Extraction] PDF conversion failed: ${conversionError.message}`);
+          errors.push({
+            type: 'API_ERROR',
+            message: `PDF conversion failed: ${conversionError.message}`,
+          });
+        } else {
+          errors.push({
+            type: 'API_ERROR',
+            message: 'PDF conversion failed unexpectedly',
+          });
+        }
+        return {
+          success: false,
+          data: null,
+          method: 'nuextract',
+          confidence: 0,
+          errors,
+          warnings,
+        };
+      }
+    } else {
+      // For images, use the file directly
+      pageImages = [bufferToBase64(fileBuffer)];
+    }
+
+    // Process each page and collect results
+    const pageResults: Partial<G28Data>[] = [];
+    for (let i = 0; i < pageImages.length; i++) {
+      console.log(`[G28 Extraction] Processing page ${i + 1}/${pageImages.length}...`);
+      const pageResult = await extractG28PageWithNuExtract(pageImages[i]);
+      pageResults.push(pageResult);
+      console.log(`[G28 Extraction] Page ${i + 1} result:`, JSON.stringify(pageResult, null, 2));
+    }
+
+    // Merge results from all pages
+    const mergedData = mergeG28Results(pageResults);
+    console.log('[G28 Extraction] Merged result:', JSON.stringify(mergedData, null, 2));
 
     // Validate with Zod
-    const validation = G28DataSchema.safeParse(rawData);
+    const validation = G28DataSchema.safeParse(mergedData);
 
     if (!validation.success) {
       const failedFields = validation.error.issues.map((i) => i.path.join('.'));
@@ -358,7 +469,7 @@ export async function extractG28Data(
       // Return partial data even if validation fails
       return {
         success: false,
-        data: rawData as G28Data,
+        data: mergedData as G28Data,
         method: 'nuextract',
         confidence: 0.5,
         errors,

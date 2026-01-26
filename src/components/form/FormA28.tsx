@@ -11,6 +11,7 @@ import { PassportInfoSection } from './PassportInfoSection';
 import { ClientConsentSection } from './ClientConsentSection';
 import { AttorneySignatureSection } from './AttorneySignatureSection';
 import type { FormA28Data } from '@/lib/validation/formA28Schema';
+import { defaultFormA28Values } from '@/lib/validation/formA28Schema';
 
 interface FormA28Props {
   readonly onFillForm?: (data: FormA28Data) => void;
@@ -18,9 +19,9 @@ interface FormA28Props {
 }
 
 export function FormA28({ onFillForm, isSubmitting = false }: FormA28Props): React.JSX.Element {
-  const { handleSubmit } = useFormContext<FormA28Data>();
+  const { handleSubmit, reset } = useFormContext<FormA28Data>();
   const { onSubmit } = useFormA28();
-  const { saveDraft, lastSavedAt, isSaving } = useDraftPersistence();
+  const { saveDraft, clearDraft, lastSavedAt, isSaving } = useDraftPersistence();
 
   const handleFormSubmit = handleSubmit((data) => {
     onSubmit(data);
@@ -29,6 +30,11 @@ export function FormA28({ onFillForm, isSubmitting = false }: FormA28Props): Rea
 
   const handleSaveDraft = () => {
     saveDraft();
+  };
+
+  const handleReset = () => {
+    clearDraft();
+    reset(defaultFormA28Values);
   };
 
   // Format last saved time
@@ -60,6 +66,15 @@ export function FormA28({ onFillForm, isSubmitting = false }: FormA28Props): Rea
               {isSaving ? 'Saving...' : `Last saved: ${formatLastSaved(lastSavedAt)}`}
             </span>
           )}
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
+            disabled={isSubmitting || isSaving}
+            onClick={handleReset}
+          >
+            Reset Form
+          </Button>
           <Button
             type="button"
             variant="secondary"

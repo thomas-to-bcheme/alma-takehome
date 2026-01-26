@@ -101,11 +101,28 @@ def extract_with_claude(
         f"Calling Claude API with {len(base64_images)} images, model={model}"
     )
 
-    response = client.messages.create(
-        model=model,
-        max_tokens=4096,
-        messages=[{"role": "user", "content": content}],
-    )
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=4096,
+            messages=[{"role": "user", "content": content}],
+        )
+    except anthropic.AuthenticationError as e:
+        logger.error(f"Anthropic authentication error: {e}")
+        raise ValueError(f"AUTH_ERROR: Invalid API key - {e}")
+    except anthropic.BadRequestError as e:
+        error_msg = str(e).lower()
+        if "credit balance" in error_msg or "billing" in error_msg or "purchase credits" in error_msg:
+            logger.error(f"Anthropic billing error: {e}")
+            raise ValueError(f"BILLING_ERROR: Insufficient API credits - {e}")
+        logger.error(f"Anthropic bad request error: {e}")
+        raise ValueError(f"API_ERROR: Bad request - {e}")
+    except anthropic.RateLimitError as e:
+        logger.error(f"Anthropic rate limit error: {e}")
+        raise ValueError(f"RATE_LIMIT_ERROR: API rate limited - {e}")
+    except anthropic.APIError as e:
+        logger.error(f"Anthropic API error: {e}")
+        raise ValueError(f"API_ERROR: Claude API error - {e}")
 
     # Extract text from response
     response_text = response.content[0].text

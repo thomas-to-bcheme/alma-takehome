@@ -17,6 +17,8 @@ services:
     build: ./g28-extraction-service
     ports:
       - "8001:8001"
+    env_file:
+      - .env.local
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}

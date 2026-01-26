@@ -76,12 +76,37 @@ export interface G28ClaudeResult {
 export class G28ClaudeError extends Error {
   constructor(
     message: string,
-    public readonly code: 'TIMEOUT' | 'API_ERROR' | 'DISABLED' | 'NETWORK_ERROR',
+    public readonly code: 'TIMEOUT' | 'API_ERROR' | 'DISABLED' | 'NETWORK_ERROR' | 'BILLING_ERROR' | 'QUOTA_ERROR' | 'RATE_LIMIT_ERROR',
     public readonly statusCode?: number
   ) {
     super(message);
     this.name = 'G28ClaudeError';
   }
+}
+
+/**
+ * Classify error response from G-28 service to detect billing/quota issues
+ */
+function classifyErrorResponse(errorText: string): 'BILLING_ERROR' | 'QUOTA_ERROR' | 'RATE_LIMIT_ERROR' | 'API_ERROR' {
+  const lowerError = errorText.toLowerCase();
+
+  // Check for billing-related errors
+  if (lowerError.includes('credit balance') || lowerError.includes('billing') ||
+      lowerError.includes('purchase credits') || lowerError.includes('plans & billing')) {
+    return 'BILLING_ERROR';
+  }
+
+  // Check for quota errors
+  if (lowerError.includes('quota') || lowerError.includes('limit exceeded')) {
+    return 'QUOTA_ERROR';
+  }
+
+  // Check for rate limit errors
+  if (lowerError.includes('rate limit') || lowerError.includes('too many requests')) {
+    return 'RATE_LIMIT_ERROR';
+  }
+
+  return 'API_ERROR';
 }
 
 /**
@@ -145,9 +170,10 @@ export async function extractG28WithClaude(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
+      const errorCode = classifyErrorResponse(errorText);
       throw new G28ClaudeError(
         `G-28 Claude API error: ${errorText}`,
-        'API_ERROR',
+        errorCode,
         response.status
       );
     }

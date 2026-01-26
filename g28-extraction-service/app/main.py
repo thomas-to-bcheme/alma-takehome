@@ -57,6 +57,79 @@ async def health_check() -> dict:
     return {"status": "healthy", "service": "g28-extraction"}
 
 
+@app.get("/health/deep")
+async def deep_health_check() -> dict:
+    """
+    Deep health check that validates API connectivity and credentials.
+
+    Returns:
+        - healthy: All systems operational
+        - degraded: API has billing/quota issues
+        - unhealthy: API key missing or invalid
+    """
+    import anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return {
+            "status": "unhealthy",
+            "service": "g28-extraction",
+            "reason": "ANTHROPIC_API_KEY not configured",
+        }
+
+    try:
+        # Minimal API call to verify credentials and quota
+        client = anthropic.Anthropic(api_key=api_key)
+        # Use a minimal message to check API status
+        client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=1,
+            messages=[{"role": "user", "content": "test"}],
+        )
+        return {
+            "status": "healthy",
+            "service": "g28-extraction",
+            "api_status": "operational",
+        }
+    except anthropic.AuthenticationError as e:
+        return {
+            "status": "unhealthy",
+            "service": "g28-extraction",
+            "reason": "Invalid API key",
+            "error_type": "AUTH_ERROR",
+        }
+    except anthropic.BadRequestError as e:
+        error_msg = str(e).lower()
+        if "credit balance" in error_msg or "billing" in error_msg:
+            return {
+                "status": "degraded",
+                "service": "g28-extraction",
+                "reason": "Insufficient API credits",
+                "error_type": "BILLING_ERROR",
+            }
+        return {
+            "status": "degraded",
+            "service": "g28-extraction",
+            "reason": str(e),
+            "error_type": "API_ERROR",
+        }
+    except anthropic.RateLimitError as e:
+        return {
+            "status": "degraded",
+            "service": "g28-extraction",
+            "reason": "Rate limited",
+            "error_type": "RATE_LIMIT_ERROR",
+        }
+    except Exception as e:
+        logger.warning(f"Deep health check failed: {e}")
+        return {
+            "status": "degraded",
+            "service": "g28-extraction",
+            "reason": str(e),
+            "error_type": "UNKNOWN_ERROR",
+        }
+
+
 @app.post("/extract")
 async def extract_g28(
     file: Annotated[
@@ -161,6 +234,67 @@ async def extract_g28(
             data=None,
             confidence=0.0,
             error=f"Extraction failed: {str(e)}",
+        )
+
+
+@app.post("/convert-pdf")
+async def convert_pdf(
+    file: Annotated[
+        UploadFile, File(description="PDF file to convert to images")
+    ]
+) -> dict:
+    """
+    Convert PDF to individual page images.
+
+    Args:
+        file: PDF file (max 10MB)
+
+    Returns:
+        Dictionary with list of base64-encoded page images and count
+
+    Raises:
+        HTTPException: If file type is invalid or file is too large
+    """
+    # Validate file type
+    content_type = file.content_type or ""
+    if content_type != "application/pdf":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type: {content_type}. Only PDF files are accepted.",
+        )
+
+    # Read file content
+    content = await file.read()
+
+    # Validate file size
+    if len(content) > MAX_FILE_SIZE:
+        size_mb = len(content) / (1024 * 1024)
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large: {size_mb:.1f}MB. Maximum: 10MB",
+        )
+
+    logger.info(
+        "Converting PDF to images",
+        extra={
+            "uploaded_file": file.filename,
+            "file_size": len(content),
+        },
+    )
+
+    try:
+        base64_images = pdf_to_images(content, max_pages=4)
+        logger.info(f"PDF conversion successful: {len(base64_images)} pages")
+        return {
+            "success": True,
+            "pages": base64_images,
+            "count": len(base64_images),
+        }
+    except Exception as e:
+        logger.exception("PDF conversion failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF conversion failed: {str(e)}",
         )
 
 
