@@ -92,7 +92,7 @@ async def extract_passport(
     # Extract MRZ data
     logger.info(
         "Processing passport extraction request",
-        extra={"filename": file.filename, "size": len(content), "content_type": content_type},
+        extra={"file_name": file.filename, "file_size": len(content), "content_type": content_type},
     )
 
     result = extract_from_image(content, file.filename or "image.jpg")

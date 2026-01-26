@@ -3,3 +3,5 @@ uvicorn==0.27.0
 passporteye==2.2.1
 python-multipart==0.0.6
 typing_extensions>=4.0.0
+# Pin NumPy < 2.0 for passporteye compatibility (np.asfarray removed in 2.0)
+numpy<2.0
