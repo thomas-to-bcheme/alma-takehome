@@ -78,7 +78,7 @@ export const G28DataSchema = z.object({
   city: z.string(),
   state: z.string(),
   zipCode: z.string(),
-  phone: z.string(),
+  phone: z.string().optional(),
   fax: z.string().optional(),
   email: z.string().email(),
   clientName: z.string(),
