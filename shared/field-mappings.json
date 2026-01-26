@@ -1,0 +1,275 @@
+{
+  "version": "1.0",
+  "targetFormUrl": "https://mendrika-alma.github.io/form-submission/",
+  "mappings": {
+    "attorney": [
+      {
+        "fieldName": "onlineAccountNumber",
+        "selector": "#attorney-online-account",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "attorneyLastName",
+        "selector": "#attorney-last-name",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "attorneyFirstName",
+        "selector": "#attorney-first-name",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "attorneyMiddleName",
+        "selector": "#attorney-middle-name",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "street",
+        "selector": "#attorney-street",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "aptSteFlr",
+        "selector": "#attorney-apt-type",
+        "fieldType": "select",
+        "required": false
+      },
+      {
+        "fieldName": "aptSteFlrNumber",
+        "selector": "#attorney-apt-number",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "city",
+        "selector": "#attorney-city",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "state",
+        "selector": "#attorney-state",
+        "fieldType": "select",
+        "required": true
+      },
+      {
+        "fieldName": "zipCode",
+        "selector": "#attorney-zip",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "country",
+        "selector": "#attorney-country",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "daytimePhone",
+        "selector": "#attorney-daytime-phone",
+        "fieldType": "tel",
+        "required": true
+      },
+      {
+        "fieldName": "mobilePhone",
+        "selector": "#attorney-mobile-phone",
+        "fieldType": "tel",
+        "required": false
+      },
+      {
+        "fieldName": "email",
+        "selector": "#attorney-email",
+        "fieldType": "email",
+        "required": false
+      }
+    ],
+    "eligibility": [
+      {
+        "fieldName": "isAttorney",
+        "selector": "#eligibility-attorney",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "barNumber",
+        "selector": "#eligibility-bar-number",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "licensingAuthority",
+        "selector": "#eligibility-licensing-authority",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "isSubjectToOrders",
+        "selector": "input[name=\"subject-to-orders\"]",
+        "fieldType": "radio",
+        "required": false
+      },
+      {
+        "fieldName": "lawFirmOrOrganization",
+        "selector": "#eligibility-law-firm",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "isAccreditedRep",
+        "selector": "#eligibility-accredited-rep",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "organizationName",
+        "selector": "#eligibility-organization-name",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "accreditationDate",
+        "selector": "#eligibility-accreditation-date",
+        "fieldType": "date",
+        "required": false
+      },
+      {
+        "fieldName": "isAssociatedWithAttorney",
+        "selector": "#eligibility-associated-attorney",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "isLawStudent",
+        "selector": "#eligibility-law-student",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "lawStudentName",
+        "selector": "#eligibility-law-student-name",
+        "fieldType": "text",
+        "required": false
+      }
+    ],
+    "passport": [
+      {
+        "fieldName": "clientLastName",
+        "selector": "#client-last-name",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "clientFirstName",
+        "selector": "#client-first-name",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "clientMiddleName",
+        "selector": "#client-middle-name",
+        "fieldType": "text",
+        "required": false
+      },
+      {
+        "fieldName": "passportNumber",
+        "selector": "#passport-number",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "countryOfIssue",
+        "selector": "#passport-country-issue",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "dateOfIssue",
+        "selector": "#passport-date-issue",
+        "fieldType": "date",
+        "required": true
+      },
+      {
+        "fieldName": "dateOfExpiration",
+        "selector": "#passport-date-expiration",
+        "fieldType": "date",
+        "required": true
+      },
+      {
+        "fieldName": "dateOfBirth",
+        "selector": "#client-date-of-birth",
+        "fieldType": "date",
+        "required": true
+      },
+      {
+        "fieldName": "placeOfBirth",
+        "selector": "#client-place-of-birth",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "sex",
+        "selector": "input[name=\"client-sex\"]",
+        "fieldType": "radio",
+        "required": true
+      },
+      {
+        "fieldName": "nationality",
+        "selector": "#client-nationality",
+        "fieldType": "text",
+        "required": true
+      },
+      {
+        "fieldName": "alienNumber",
+        "selector": "#client-alien-number",
+        "fieldType": "text",
+        "required": false
+      }
+    ],
+    "clientConsent": [
+      {
+        "fieldName": "noticeToAttorney",
+        "selector": "#consent-notice-attorney",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "documentsToAttorney",
+        "selector": "#consent-docs-attorney",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "documentsToClient",
+        "selector": "#consent-docs-client",
+        "fieldType": "checkbox",
+        "required": false,
+        "valueForTrue": "checked"
+      },
+      {
+        "fieldName": "clientSignatureDate",
+        "selector": "#client-signature-date",
+        "fieldType": "date",
+        "required": true
+      }
+    ],
+    "attorneySignature": [
+      {
+        "fieldName": "attorneySignatureDate",
+        "selector": "#attorney-signature-date",
+        "fieldType": "date",
+        "required": true
+      }
+    ]
+  }
+}

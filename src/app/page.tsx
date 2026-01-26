@@ -7,6 +7,7 @@ import { UploadSection } from './UploadSection';
 import { FormA28 } from '@/components/form';
 import { mapExtractedToForm } from '@/lib/mapExtractedToForm';
 import { AutomationProgress, ScreenshotPreview } from '@/components/automation';
+import { clearDraftStorage } from '@/hooks/useDraftPersistence';
 import type { AutomationStatus, FormFillResult } from '@/types';
 import type { FormA28Data } from '@/lib/validation/formA28Schema';
 
@@ -47,6 +48,8 @@ function MainContent(): React.JSX.Element {
 
       setAutomationResult(result.data);
       setAutomationStatus('success');
+      // Clear draft on successful form fill
+      clearDraftStorage();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setAutomationError(errorMessage);
