@@ -12,19 +12,19 @@ import {
   isPassportEyeEnabled,
   PassportEyeError,
 } from './passporteye-client';
+// Note: Docker Claude service imports removed - using direct Claude Vision API only
 import {
-  extractG28WithClaude,
-  isG28ClaudeEnabled,
-  G28ClaudeError,
-  type G28ClaudeData,
-} from './g28-claude-client';
+  extractG28PageWithClaude,
+  isClaudeVisionEnabled,
+  ClaudeVisionError,
+} from './claude-vision-client';
 import {
   convertPdfToImages,
   isPdfMimeType,
   PdfConversionError,
 } from './pdf-converter-client';
 import { extractFromMRZ } from './mrz/parser';
-import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
+import { PASSPORT_TEMPLATE } from './templates';
 
 /**
  * Extraction pipeline that orchestrates various extraction services
@@ -35,8 +35,9 @@ import { PASSPORT_TEMPLATE, G28_TEMPLATE } from './templates';
  * 3. If MRZ fails, fall back to NuExtract API
  *
  * For G-28 forms:
- * 1. Attempt Claude Vision extraction (highest accuracy for forms)
- * 2. If Claude Vision fails, fall back to NuExtract API
+ * - Uses Claude Vision API exclusively (no fallback)
+ * - Requires ANTHROPIC_API_KEY environment variable
+ * - Errors are explicit - no silent failures
  */
 
 /**
@@ -242,51 +243,6 @@ export async function extractPassportData(
 }
 
 /**
- * Map Claude extraction result to G28Data format
- */
-function mapClaudeToG28Data(claudeData: G28ClaudeData): G28Data {
-  const attorney = claudeData.attorney;
-  const client = claudeData.client;
-  const eligibility = claudeData.eligibility;
-
-  // Combine attorney name parts into full name
-  const attorneyNameParts = [
-    attorney.given_name,
-    attorney.middle_name,
-    attorney.family_name,
-  ].filter(Boolean);
-  const attorneyName = attorneyNameParts.join(' ');
-
-  // Combine client name parts into full name
-  const clientNameParts = [
-    client.given_name,
-    client.middle_name,
-    client.family_name,
-  ].filter(Boolean);
-  const clientName = clientNameParts.join(' ');
-
-  return {
-    attorneyName,
-    firmName: attorney.firm_name,
-    street: attorney.address.street,
-    suite: attorney.address.suite,
-    city: attorney.address.city,
-    state: attorney.address.state,
-    zipCode: attorney.address.zip_code,
-    phone: attorney.phone,
-    email: attorney.email,
-    clientName,
-    barNumber: eligibility.bar_number,
-    // Eligibility flags
-    isAttorney: eligibility.is_attorney,
-    isAccreditedRep: eligibility.is_accredited_rep,
-    // Client contact fields
-    clientPhone: client.phone || '',
-    clientEmail: client.email || '',
-  };
-}
-
-/**
  * Merge G-28 extraction results from multiple pages
  * Takes first non-empty value for each field
  */
@@ -327,25 +283,13 @@ function mergeG28Results(pageResults: Partial<G28Data>[]): Partial<G28Data> {
 }
 
 /**
- * Extract G-28 data from a single page image using NuExtract
- */
-async function extractG28PageWithNuExtract(
-  pageBase64: string
-): Promise<Partial<G28Data>> {
-  try {
-    const rawData = await extractWithNuExtract(pageBase64, G28_TEMPLATE);
-    return rawData as Partial<G28Data>;
-  } catch (error) {
-    console.warn('[G28 Extraction] Page extraction failed:', error instanceof Error ? error.message : 'Unknown error');
-    return {};
-  }
-}
-
-/**
  * Extract G-28 form data from a file buffer
  *
- * Uses Claude Vision API as primary extraction method with NuExtract as fallback
- * For PDFs, converts to page images and processes each page separately
+ * Uses Claude Vision API directly for page-by-page extraction.
+ * For PDFs, converts to page images first via PDF conversion service.
+ *
+ * NOTE: Claude Vision is the only extraction method for G-28 forms.
+ * NuExtract fallback has been removed - errors will be explicit.
  *
  * @param fileBuffer - Raw file bytes (PDF or image)
  * @param mimeType - MIME type of the file (required for Claude Vision)
@@ -357,162 +301,149 @@ export async function extractG28Data(
   const errors: ExtractionError[] = [];
   const warnings: string[] = [];
 
-  // Step 1: Try Claude Vision if enabled and mimeType is provided
-  if (mimeType && isG28ClaudeEnabled()) {
+  // Step 1: Convert PDF to page images (or use image directly)
+  let pageImages: readonly string[];
+
+  if (isPdfMimeType(mimeType)) {
+    console.log('[G28 Extraction] PDF detected, converting to page images...');
     try {
-      const claudeResult = await extractG28WithClaude(fileBuffer, mimeType);
-
-      if (claudeResult.success && claudeResult.data) {
-        console.log('[G28 Extraction] Claude Vision result:', JSON.stringify(claudeResult.data, null, 2));
-        // Map Claude data format to G28Data
-        const g28Data = mapClaudeToG28Data(claudeResult.data);
-        console.log('[G28 Extraction] Mapped G28Data:', JSON.stringify(g28Data, null, 2));
-
-        // Validate with Zod
-        const validation = G28DataSchema.safeParse(g28Data);
-
-        if (validation.success) {
-          return {
-            success: true,
-            data: validation.data,
-            method: 'combined', // Using 'combined' to indicate Claude Vision method
-            confidence: claudeResult.confidence,
-            errors: [],
-            warnings: [],
-          };
-        }
-
-        warnings.push('Claude Vision extracted data but validation failed, trying NuExtract fallback');
-      } else {
-        warnings.push(
-          `Claude Vision extraction failed: ${claudeResult.error ?? 'Unknown error'}, trying NuExtract fallback`
-        );
-      }
-    } catch (error) {
-      if (error instanceof G28ClaudeError) {
-        if (error.code === 'BILLING_ERROR' || error.code === 'QUOTA_ERROR') {
-          console.warn(`[G28 Extraction] Claude Vision billing/quota issue: ${error.message}`);
-          warnings.push(`Claude Vision unavailable (billing/quota issue), using NuExtract fallback`);
-        } else if (error.code === 'RATE_LIMIT_ERROR') {
-          console.warn(`[G28 Extraction] Claude Vision rate limited: ${error.message}`);
-          warnings.push(`Claude Vision rate limited, using NuExtract fallback`);
-        } else if (error.code !== 'DISABLED') {
-          warnings.push(`Claude Vision error: ${error.message}, trying NuExtract fallback`);
-        }
-      } else {
-        warnings.push('Claude Vision unexpected error, trying NuExtract fallback');
-      }
-    }
-  }
-
-  // Step 2: Fall back to NuExtract API with page-by-page processing for PDFs
-  try {
-    let pageImages: readonly string[];
-
-    // Check if file is PDF - convert to images first
-    if (isPdfMimeType(mimeType)) {
-      console.log('[G28 Extraction] PDF detected, converting to page images...');
-      try {
-        pageImages = await convertPdfToImages(fileBuffer);
-        console.log(`[G28 Extraction] Converted PDF to ${pageImages.length} page images`);
-      } catch (conversionError) {
-        if (conversionError instanceof PdfConversionError) {
-          console.error(`[G28 Extraction] PDF conversion failed: ${conversionError.message}`);
-          errors.push({
-            type: 'API_ERROR',
-            message: `PDF conversion failed: ${conversionError.message}`,
-          });
-        } else {
-          errors.push({
-            type: 'API_ERROR',
-            message: 'PDF conversion failed unexpectedly',
-          });
-        }
-        return {
-          success: false,
-          data: null,
-          method: 'nuextract',
-          confidence: 0,
-          errors,
-          warnings,
-        };
-      }
-    } else {
-      // For images, use the file directly
-      pageImages = [bufferToBase64(fileBuffer)];
-    }
-
-    // Process each page and collect results
-    const pageResults: Partial<G28Data>[] = [];
-    for (let i = 0; i < pageImages.length; i++) {
-      console.log(`[G28 Extraction] Processing page ${i + 1}/${pageImages.length}...`);
-      const pageResult = await extractG28PageWithNuExtract(pageImages[i]);
-      pageResults.push(pageResult);
-      console.log(`[G28 Extraction] Page ${i + 1} result:`, JSON.stringify(pageResult, null, 2));
-    }
-
-    // Merge results from all pages
-    const mergedData = mergeG28Results(pageResults);
-    console.log('[G28 Extraction] Merged result:', JSON.stringify(mergedData, null, 2));
-
-    // Validate with Zod
-    const validation = G28DataSchema.safeParse(mergedData);
-
-    if (!validation.success) {
-      const failedFields = validation.error.issues.map((i) => i.path.join('.'));
-      errors.push({
-        type: 'VALIDATION_FAILED',
-        message: 'Extracted G-28 data failed validation',
-        fields: failedFields,
-      });
-
-      // Return partial data even if validation fails
-      return {
-        success: false,
-        data: mergedData as G28Data,
-        method: 'nuextract',
-        confidence: 0.5,
-        errors,
-        warnings,
-      };
-    }
-
-    return {
-      success: true,
-      data: validation.data,
-      method: 'nuextract',
-      confidence: 0.9,
-      errors: [],
-      warnings,
-    };
-  } catch (error) {
-    if (error instanceof NuExtractError) {
-      if (error.code === 'TIMEOUT') {
+      pageImages = await convertPdfToImages(fileBuffer);
+      console.log(`[G28 Extraction] Converted PDF to ${pageImages.length} page images`);
+    } catch (conversionError) {
+      if (conversionError instanceof PdfConversionError) {
+        console.error(`[G28 Extraction] PDF conversion failed: ${conversionError.message}`);
         errors.push({
-          type: 'API_TIMEOUT',
-          message: error.message,
+          type: 'API_ERROR',
+          message: `PDF conversion failed: ${conversionError.message}`,
         });
       } else {
         errors.push({
           type: 'API_ERROR',
-          message: error.message,
-          statusCode: error.statusCode,
+          message: 'PDF conversion failed unexpectedly',
         });
       }
-    } else {
-      errors.push({
-        type: 'API_ERROR',
-        message: error instanceof Error ? error.message : 'Unknown extraction error',
-      });
+      return {
+        success: false,
+        data: null,
+        method: 'nuextract',
+        confidence: 0,
+        errors,
+        warnings,
+      };
     }
+  } else {
+    // For images, use the file directly
+    pageImages = [bufferToBase64(fileBuffer)];
+  }
+
+  // Step 2: Try direct Claude Vision API (page-by-page)
+  const claudeVisionEnabled = isClaudeVisionEnabled();
+  console.log('[G28 Extraction] Claude Vision enabled:', claudeVisionEnabled);
+  console.log('[G28 Extraction] ANTHROPIC_API_KEY present:', Boolean(process.env.ANTHROPIC_API_KEY));
+
+  if (claudeVisionEnabled) {
+    console.log('[G28 Extraction] Using direct Claude Vision API...');
+    try {
+      const pageResults: Partial<G28Data>[] = [];
+
+      for (let i = 0; i < pageImages.length; i++) {
+        console.log(`[G28 Extraction] Processing page ${i + 1}/${pageImages.length} with Claude Vision...`);
+        const pageResult = await extractG28PageWithClaude(pageImages[i], 'image/png');
+        pageResults.push(pageResult);
+        console.log(`[G28 Extraction] Page ${i + 1} result:`, JSON.stringify(pageResult, null, 2));
+      }
+
+      // Merge results from all pages
+      const mergedData = mergeG28Results(pageResults);
+      console.log('[G28 Extraction] Merged result:', JSON.stringify(mergedData, null, 2));
+
+      // Validate with Zod
+      const validation = G28DataSchema.safeParse(mergedData);
+
+      if (validation.success) {
+        return {
+          success: true,
+          data: validation.data,
+          method: 'combined', // 'combined' indicates Claude Vision method
+          confidence: 0.95,
+          errors: [],
+          warnings,
+        };
+      }
+
+      // Partial success - return data even if validation fails
+      warnings.push('Claude Vision extracted data but validation failed');
+      return {
+        success: false,
+        data: mergedData as G28Data,
+        method: 'combined',
+        confidence: 0.7,
+        errors: [{
+          type: 'VALIDATION_FAILED',
+          message: 'Extracted G-28 data failed validation',
+          fields: validation.error.issues.map((i) => i.path.join('.')),
+        }],
+        warnings,
+      };
+    } catch (error) {
+      // Claude Vision is primary method - propagate errors instead of falling back
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[G28 Extraction] Claude Vision failed: ${errorMessage}`);
+
+      if (error instanceof ClaudeVisionError) {
+        errors.push({
+          type: 'API_ERROR',
+          message: `Claude Vision extraction failed: ${error.message}`,
+          statusCode: error.statusCode,
+        });
+      } else {
+        errors.push({
+          type: 'API_ERROR',
+          message: `Claude Vision extraction failed: ${errorMessage}`,
+        });
+      }
+
+      return {
+        success: false,
+        data: null,
+        method: 'combined',
+        confidence: 0,
+        errors,
+        warnings,
+      };
+    }
+  } else {
+    // Claude Vision not enabled - this is a configuration error
+    console.error('[G28 Extraction] Claude Vision is not enabled - ANTHROPIC_API_KEY missing');
+    errors.push({
+      type: 'API_ERROR',
+      message: 'Claude Vision is not enabled. Set ANTHROPIC_API_KEY environment variable.',
+    });
 
     return {
       success: false,
       data: null,
-      method: 'nuextract',
+      method: 'combined',
       confidence: 0,
       errors,
       warnings,
     };
   }
+
+  // NOTE: This point is unreachable - all code paths above return
+  // Keeping this as a fallback safety net
+  console.error('[G28 Extraction] Unexpected: reached unreachable code');
+  errors.push({
+    type: 'API_ERROR',
+    message: 'Unexpected control flow error in G-28 extraction',
+  });
+
+  return {
+    success: false,
+    data: null,
+    method: 'combined',
+    confidence: 0,
+    errors,
+    warnings,
+  };
 }
