@@ -1,195 +1,8 @@
-# Alma Document Automation
+# System Design Documentation
 
-> AI/ML Engineering Take-Home Assignment
-
-## Table of Contents
-
-- [Executive Summary](#executive-summary)
-- [Project Purpose](#project-purpose)
-- [Feature Objectives](#feature-objectives)
-- [Development Methodology](#development-methodology)
-- [Repository Structure](#repository-structure)
-- [Quick Start](#quick-start)
-- [Documentation](#documentation)
-- [Tech Stack](#tech-stack)
-
----
-
-## Executive Summary
-
-This repository contains a document automation web application that extracts structured data from **passport** and **G-28 immigration forms**, then auto-populates a target web form using browser automation. The project demonstrates end-to-end AI/ML engineering capabilities including document processing, multi-strategy data extraction (MRZ, OCR, LLM), and intelligent form population.
-
-**Target Form:** https://mendrika-alma.github.io/form-submission/
-
-### Key Capabilities
-
-| Capability | Description |
-|------------|-------------|
-| Document Upload | Accept PDF and image files (JPEG, PNG) up to 10MB |
-| Data Extraction | MRZ parsing → OCR → LLM vision (fallback chain) |
-| Multi-Country Support | Handle passports from various countries |
-| Form Automation | Playwright-based browser automation |
-| Robustness | Tolerate document variations without code changes |
-
----
-
-## Project Purpose
-
-This take-home assignment for [Alma](https://tryalma.ai) simulates a real-world document automation process that reduces manual data entry effort in immigration workflows. The application demonstrates:
-
-1. **AI/ML Integration** - Combining traditional computer vision (MRZ, OCR) with modern LLM capabilities
-2. **Production Patterns** - Type-safe, testable, maintainable code architecture
-3. **Browser Automation** - Reliable form population using Playwright
-4. **Agentic Development** - Systematic AI-assisted coding with Claude Code
-
----
-
-## Feature Objectives
-
-Based on the Product Requirements Document (PRD), the following deliverables must be met:
-
-### 1. File Upload Interface
-
-- [x] Web interface for document upload (Next.js/React)
-- [x] Support PDF and image formats (JPEG, PNG)
-- [x] Drag-and-drop functionality
-- [x] File validation (type, size)
-
-### 2. Data Extraction
-
-- [x] **MRZ Extraction** - Parse Machine Readable Zone from passports
-- [x] **OCR Processing** - Extract text from documents
-- [x] **LLM-Based Extraction** - Vision model fallback for complex cases
-
-**Fields to Extract:**
-
-| Source | Fields |
-|--------|--------|
-| Passport | Full name, DOB, nationality, passport number, expiration, sex |
-| G-28 Form | Attorney name, firm, address, client name, A-number |
-
-### 3. Form Population
-
-- [x] Navigate to target form URL via Playwright
-- [x] Accurately fill fields with extracted data
-- [x] Handle different input types (text, date, select)
-- [x] **Do NOT submit or digitally sign the form**
-
-### 4. Robustness Requirements
-
-- [x] Handle passports from various countries
-- [x] Tolerate minor document formatting variations
-- [x] Graceful handling of missing data
-- [x] No hardcoded field positions or values
-
-### 5. Deliverables Checklist
-
-- [x] Local web interface with minimal setup
-- [x] Working source code in GitHub repository
-- [x] Clear setup instructions
-- [ ] Screen recording of workflow (Loom) - **Pending**
-
----
-
-## Development Methodology
-
-### Planning → Implementation → Validation (PIV)
-
-This project follows a systematic **PIV workflow** optimized for AI-assisted development with Claude Code:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         PLANNING                                 │
-│  Frontload context, define architecture, create agent guides    │
-├─────────────────────────────────────────────────────────────────┤
-│  • /init → Generate CLAUDE.md foundation                        │
-│  • Cross-reference boilerplate best practices                   │
-│  • Create .agents/ for domain specialization                    │
-│  • Write system_design_docs/ specifications                     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                       IMPLEMENTATION                             │
-│  Execute with combined context from planning artifacts          │
-├─────────────────────────────────────────────────────────────────┤
-│  • Load CLAUDE.md (automatic)                                   │
-│  • Load relevant .agents/*.md for task domain                   │
-│  • Reference system_design_docs/ for specifications             │
-│  • Build features following established patterns                │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        VALIDATION                                │
-│  Verify compliance with directives and boundaries               │
-├─────────────────────────────────────────────────────────────────┤
-│  • Check against Development Directives                         │
-│  • Verify agent boundaries respected                            │
-│  • Run tests (unit, integration, E2E)                           │
-│  • Orchestrator review for cross-cutting concerns               │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Claude Code Best Practices Applied
-
-| Practice | Implementation |
-|----------|----------------|
-| **CLAUDE.md as Foundation** | Project context, directives, tech stack, data flow |
-| **Agent Specialization** | Domain-specific guides in `.agents/` for focused context |
-| **Markdown-as-Context** | Human-readable, version-controlled AI guidance |
-| **Progressive Context** | Generic → Project → Task-specific layering |
-| **Immutable Directives** | Non-negotiable rules enforced across all agents |
-
-### Frontloaded Planning
-
-Before writing implementation code, extensive planning artifacts were created:
-
-```
-Planning Artifacts Created
-├── CLAUDE.md                    # Foundation context for Claude Code
-├── .agents/                     # 6 specialized agent guides
-│   ├── _index.md               # Routing rules
-│   ├── backend.md              # File processing patterns
-│   ├── frontend.md             # UI component specs
-│   ├── api.md                  # Endpoint contracts
-│   ├── ai-ml.md                # Extraction strategies
-│   ├── automation.md           # Playwright patterns
-│   └── orchestrator.md         # Review checklists
-└── system_design_docs/          # 8 detailed specifications
-    ├── ARCHITECTURE.md
-    ├── DATA_FLOW.md
-    ├── API_SPEC.md
-    ├── COMPONENTS.md
-    ├── EXTRACTION.md
-    ├── AUTOMATION.md
-    ├── DEPLOYMENT.md
-    └── guardrails.md
-```
-
-**Why Frontload Planning?**
-- Reduces implementation ambiguity
-- Enables parallel agent execution
-- Creates reusable context for AI-assisted development
-- Establishes clear boundaries and contracts
-
----
-
-## Repository Structure
-
-```
-alma/
-├── CLAUDE.md                   # AI guidance (start here)
-├── README.md                   # This file
-├── .agents/                    # Domain-specific agent guides
-├── system_design_docs/         # Detailed specifications
-├── src/
-│   └── app/                    # Next.js App Router
-├── public/                     # Static assets
-├── G-28.pdf                    # Sample G-28 form
-├── package.json
-└── tsconfig.json
-```
+End-to-end documentation for the Alma Document Automation project.
+Loom demonstration of the upload workflow can be found here:
+https://www.loom.com/share/f5c60dc0a14f492c98c54494d4b0a42f
 
 ---
 
@@ -197,100 +10,265 @@ alma/
 
 ### Prerequisites
 
-- Node.js 20+
-- npm 10+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Node.js | 18+ | Next.js runtime |
+| npm/pnpm | latest | Package management |
+| Docker | 20+ | Backend microservices |
+| Docker Compose | 2.0+ | Service orchestration |
+| Tesseract OCR | 4.x | MRZ extraction (for local dev) |
 
-### Installation
+### 1. Start Backend Services (Docker)
 
 ```bash
-# Clone repository
-git clone git@github.com:thomas-to-bcheme/alma-takehome.git
-cd alma-takehome
+# Start all microservices in detached mode
+docker-compose up -d
 
+# Verify services are running
+docker-compose ps
+
+# Expected output:
+#   passporteye      running   0.0.0.0:8000->8000
+#   g28-extraction   running   0.0.0.0:8001->8001
+#   form-automation  running   0.0.0.0:8002->8002
+```
+
+### 2. Start Frontend (Next.js)
+
+```bash
 # Install dependencies
 npm install
 
 # Start development server
 npm run dev
+
+# Access at http://localhost:3000
 ```
 
-Open http://localhost:3000
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm test` | Run unit tests |
-| `npm run test:watch` | Run tests in watch mode |
-
-### Docker Services
-
-The backend extraction and automation services run in Docker containers.
+### 3. Verify Setup
 
 ```bash
-# Start all backend services
-docker compose up -d
+# Health checks
+curl http://localhost:8000/health   # PassportEye
+curl http://localhost:8001/health   # G-28 Extraction
+curl http://localhost:8002/health   # Form Automation
 
-# Check service health
-docker compose ps
-
-# View logs
-docker compose logs -f
+# Test extraction pipeline
+curl -X POST -F "file=@test/fixtures/passports/valid/specimen.jpg" \
+  http://localhost:8000/extract
 ```
-
-| Service | Port | Health Check |
-|---------|------|--------------|
-| passporteye | 8000 | http://localhost:8000/health |
-| g28-extraction | 8001 | http://localhost:8001/health |
-| form-automation | 8002 | http://localhost:8002/health |
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [`CLAUDE.md`](./CLAUDE.md) | AI guidance, directives, project overview |
-| [`.agents/_index.md`](./.agents/_index.md) | Agent routing and descriptions |
-| [`system_design_docs/`](./system_design_docs/) | Detailed technical specifications |
-
-### System Design Documents
-
-| Document | Contents |
-|----------|----------|
-| [`ARCHITECTURE.md`](./system_design_docs/ARCHITECTURE.md) | System layers, tech decisions |
-| [`DATA_FLOW.md`](./system_design_docs/DATA_FLOW.md) | End-to-end data pipeline |
-| [`API_SPEC.md`](./system_design_docs/API_SPEC.md) | Endpoint contracts |
-| [`COMPONENTS.md`](./system_design_docs/COMPONENTS.md) | React component hierarchy |
-| [`EXTRACTION.md`](./system_design_docs/EXTRACTION.md) | MRZ, OCR, LLM strategies |
-| [`AUTOMATION.md`](./system_design_docs/AUTOMATION.md) | Playwright patterns |
-| [`DEPLOYMENT.md`](./system_design_docs/DEPLOYMENT.md) | Setup and deployment |
 
 ---
 
 ## Tech Stack
 
+### Frontend
+
 | Layer | Technology | Version |
 |-------|------------|---------|
 | Framework | Next.js (App Router) | 16.1.4 |
-| UI | React | 19.2.3 |
+| UI Library | React | 19.2.3 |
 | Styling | Tailwind CSS | v4 |
-| Language | TypeScript (strict) | 5.x |
-| Browser Automation | Playwright | Latest |
-| Deployment | Vercel | - |
+| Language | TypeScript (strict) | ^5 |
+| Form Handling | React Hook Form | 7.71.1 |
+| Validation | Zod | 4.3.6 |
+| Testing | Vitest | 2.0.0 |
+| E2E Testing | Playwright | 1.58.0 |
+
+### Backend Services (Python FastAPI)
+
+| Service | Port | Purpose | Key Dependencies |
+|---------|------|---------|------------------|
+| PassportEye | 8000 | MRZ extraction | passporteye, tesseract |
+| G-28 Extraction | 8001 | Claude Vision extraction | anthropic, pdf2image |
+| Form Automation | 8002 | Browser automation | playwright 1.41.0 |
+
+### Deployment Platforms
+
+| Environment | Platform | Notes |
+|-------------|----------|-------|
+| Frontend | Vercel | Next.js serverless deployment |
+| Backend | Docker (local) | Development environment |
+| Backend | Railway/Render | Production microservices |
 
 ---
 
-## License
+## Docker Services
 
-This project is a take-home assignment for Alma. All rights reserved.
+### Service Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   PassportEye   │     │ G-28 Extraction │     │ Form Automation │
+│     :8000       │     │     :8001       │     │     :8002       │
+│                 │     │                 │     │                 │
+│  MRZ + OCR      │     │  Claude Vision  │     │   Playwright    │
+│  Extraction     │     │  PDF Parsing    │     │   Fill Forms    │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### Commands
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f [service-name]
+
+# Rebuild after changes
+docker-compose up -d --build
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+```
+
+### Environment Variables
+
+Each service requires specific environment variables. See `.env.example` for templates:
+
+| Service | Required Variables |
+|---------|-------------------|
+| PassportEye | `TESSERACT_PATH` |
+| G-28 Extraction | `ANTHROPIC_API_KEY` |
+| Form Automation | `TARGET_FORM_URL` |
 
 ---
 
-## Contact
+## Testing
 
-For questions about this submission, please contact the repository owner.
+### Unit Tests (Vitest)
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Watch mode
+npm test -- --watch
+```
+
+### E2E Tests (Playwright)
+
+```bash
+# Install browsers (first time)
+npx playwright install
+
+# Run E2E tests
+npm run test:e2e
+
+# Run with UI
+npx playwright test --ui
+```
+
+### Test Fixtures
+
+Test fixtures are located in `test/fixtures/`:
+
+```
+test/fixtures/
+├── passports/
+│   ├── valid/           # Valid passport images
+│   │   └── specimen.jpg # ICAO specimen for MRZ testing
+│   ├── invalid/         # Malformed/corrupted files
+│   └── edge-cases/      # Blurry, rotated, low-res
+└── g28/
+    ├── valid/           # Valid G-28 forms
+    └── invalid/         # Incomplete/damaged forms
+```
+
+### Manual Testing
+
+```bash
+# Test PassportEye extraction
+curl -X POST -F "file=@test/fixtures/passports/valid/specimen.jpg" \
+  http://localhost:8000/extract
+
+# Test G-28 extraction
+curl -X POST -F "file=@test/fixtures/g28/valid/sample.pdf" \
+  http://localhost:8001/extract
+
+# Test full pipeline (Next.js API)
+curl -X POST -F "passport=@test/fixtures/passports/valid/specimen.jpg" \
+  http://localhost:3000/api/extract
+```
+
+---
+
+## Quick Links
+
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System overview, tech stack, directory structure |
+| [DATA_FLOW.md](./DATA_FLOW.md) | End-to-end data flow, schemas, error states |
+| [API_SPEC.md](./API_SPEC.md) | REST API endpoints, request/response contracts |
+| [COMPONENTS.md](./COMPONENTS.md) | Frontend components, state management |
+| [EXTRACTION.md](./EXTRACTION.md) | MRZ, OCR, LLM extraction pipeline |
+| [AUTOMATION.md](./AUTOMATION.md) | Playwright browser automation |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Setup, environment, deployment |
+
+## Agent References
+
+All documentation cross-references the agent specifications in `.agents/`:
+
+| Agent | File | Focus |
+|-------|------|-------|
+| Backend | `.agents/backend.md` | File processing, data transformation |
+| Frontend | `.agents/frontend.md` | Upload UI, state, components |
+| API | `.agents/api.md` | Endpoints, validation, contracts |
+| AI/ML | `.agents/ai-ml.md` | OCR, MRZ parsing, LLM extraction |
+| Automation | `.agents/automation.md` | Playwright, form population |
+| Orchestrator | `.agents/orchestrator.md` | Code review, integration |
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      USER INTERFACE                          │
+│   Upload Zone → Preview → Extracted Data → Fill Form         │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+┌─────────────────────────────┴───────────────────────────────┐
+│                      API LAYER                               │
+│        POST /api/extract    POST /api/fill-form              │
+└─────────────────────────────┬───────────────────────────────┘
+                              │
+┌─────────────────────────────┴───────────────────────────────┐
+│                    SERVICE LAYER                             │
+│   File Service → Extraction Service → Automation Service     │
+│                  (MRZ → OCR → LLM)       (Playwright)        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Key Workflows
+
+### 1. Document Upload & Extraction
+
+1. User uploads passport (required) and G-28 form (optional)
+2. Server validates file type and size
+3. Extraction pipeline processes documents:
+   - MRZ parsing (highest accuracy)
+   - OCR fallback
+   - LLM vision fallback
+4. Normalized data returned to frontend
+
+### 2. Form Population
+
+1. User reviews/edits extracted data
+2. User triggers form fill
+3. Playwright navigates to target form
+4. Fields populated based on mapping
+5. Screenshot captured (form NOT submitted)
+
+## Development Principles
+
+1. **No Hardcoding**: All config via environment variables
+2. **Fail Fast**: Validate at boundaries
+3. **Graceful Degradation**: Return partial results
+4. **Type Safety**: Full TypeScript coverage
+5. **PII Protection**: Scrub sensitive data from logs
