@@ -32,14 +32,12 @@ export function AttorneyInfoSection(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input
             label="Last Name"
-            required
-            {...register('attorneyLastName')}
+                        {...register('attorneyLastName')}
             error={errors.attorneyLastName?.message}
           />
           <Input
             label="First Name"
-            required
-            {...register('attorneyFirstName')}
+                        {...register('attorneyFirstName')}
             error={errors.attorneyFirstName?.message}
           />
           <Input
@@ -59,8 +57,7 @@ export function AttorneyInfoSection(): React.JSX.Element {
         {/* Street Address */}
         <Input
           label="Street Number and Name"
-          required
-          {...register('street')}
+                    {...register('street')}
           error={errors.street?.message}
         />
 
@@ -92,22 +89,19 @@ export function AttorneyInfoSection(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[2fr_1fr_1fr]">
           <Input
             label="City"
-            required
-            {...register('city')}
+                        {...register('city')}
             error={errors.city?.message}
           />
           <Select
             label="State"
-            required
-            options={US_STATES}
+                        options={US_STATES}
             placeholder="Select state"
             {...register('state')}
             error={errors.state?.message}
           />
           <Input
             label="ZIP Code"
-            required
-            {...register('zipCode')}
+                        {...register('zipCode')}
             error={errors.zipCode?.message}
           />
         </div>
@@ -124,8 +118,7 @@ export function AttorneyInfoSection(): React.JSX.Element {
           <Input
             label="Daytime Phone Number"
             type="tel"
-            required
-            {...register('daytimePhone')}
+                        {...register('daytimePhone')}
             error={errors.daytimePhone?.message}
           />
           <Input

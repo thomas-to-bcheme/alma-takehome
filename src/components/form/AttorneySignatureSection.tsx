@@ -23,8 +23,7 @@ export function AttorneySignatureSection(): React.JSX.Element {
         <div className="max-w-xs">
           <DateInput
             label="Date of Signature"
-            required
-            {...register('attorneySignatureDate')}
+                        {...register('attorneySignatureDate')}
             error={errors.attorneySignatureDate?.message}
           />
         </div>

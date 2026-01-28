@@ -24,14 +24,12 @@ export function PassportInfoSection(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Input
             label="Last Name (Surname)"
-            required
-            {...register('clientLastName')}
+                        {...register('clientLastName')}
             error={errors.clientLastName?.message}
           />
           <Input
             label="First Name (Given Names)"
-            required
-            {...register('clientFirstName')}
+                        {...register('clientFirstName')}
             error={errors.clientFirstName?.message}
           />
           <Input
@@ -45,14 +43,12 @@ export function PassportInfoSection(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
             label="Passport Number"
-            required
-            {...register('passportNumber')}
+                        {...register('passportNumber')}
             error={errors.passportNumber?.message}
           />
           <Input
             label="Country of Issue"
-            required
-            {...register('countryOfIssue')}
+                        {...register('countryOfIssue')}
             error={errors.countryOfIssue?.message}
           />
         </div>
@@ -61,14 +57,12 @@ export function PassportInfoSection(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <DateInput
             label="Date of Issue"
-            required
-            {...register('dateOfIssue')}
+                        {...register('dateOfIssue')}
             error={errors.dateOfIssue?.message}
           />
           <DateInput
             label="Date of Expiration"
-            required
-            {...register('dateOfExpiration')}
+                        {...register('dateOfExpiration')}
             error={errors.dateOfExpiration?.message}
           />
         </div>
@@ -77,14 +71,12 @@ export function PassportInfoSection(): React.JSX.Element {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <DateInput
             label="Date of Birth"
-            required
-            {...register('dateOfBirth')}
+                        {...register('dateOfBirth')}
             error={errors.dateOfBirth?.message}
           />
           <Input
             label="Place of Birth (City, Country)"
-            required
-            {...register('placeOfBirth')}
+                        {...register('placeOfBirth')}
             error={errors.placeOfBirth?.message}
           />
         </div>
@@ -97,8 +89,7 @@ export function PassportInfoSection(): React.JSX.Element {
               <RadioGroup
                 name="sex"
                 label="Sex"
-                required
-                options={SEX_OPTIONS}
+                                options={SEX_OPTIONS}
                 value={field.value}
                 onChange={field.onChange}
                 error={errors.sex?.message}
@@ -107,8 +98,7 @@ export function PassportInfoSection(): React.JSX.Element {
           />
           <Input
             label="Nationality"
-            required
-            {...register('nationality')}
+                        {...register('nationality')}
             error={errors.nationality?.message}
           />
         </div>

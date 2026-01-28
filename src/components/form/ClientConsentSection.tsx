@@ -63,8 +63,7 @@ export function ClientConsentSection(): React.JSX.Element {
           <div className="max-w-xs">
             <DateInput
               label="2. Date of Signature"
-              required
-              {...register('clientSignatureDate')}
+                            {...register('clientSignatureDate')}
               error={errors.clientSignatureDate?.message}
             />
           </div>

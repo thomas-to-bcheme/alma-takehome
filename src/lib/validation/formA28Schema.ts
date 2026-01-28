@@ -12,22 +12,22 @@ const attorneyInfoSchema = z.object({
   onlineAccountNumber: z.string().optional(),
 
   // Name fields
-  attorneyLastName: z.string().min(1, 'Last name is required'),
-  attorneyFirstName: z.string().min(1, 'First name is required'),
+  attorneyLastName: z.string().optional(),
+  attorneyFirstName: z.string().optional(),
   attorneyMiddleName: z.string().optional(),
 
   // Address fields
   firmName: z.string().optional(),
-  street: z.string().min(1, 'Street address is required'),
+  street: z.string().optional(),
   aptSteFlr: aptSteFlrEnum,
   aptSteFlrNumber: z.string().optional(),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  zipCode: z.string().min(5, 'ZIP code is required'),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
   country: z.string().default('United States'),
 
   // Contact fields
-  daytimePhone: z.string().min(10, 'Daytime phone is required'),
+  daytimePhone: z.string().optional(),
   mobilePhone: z.string().optional(),
   fax: z.string().optional(),
   email: z.string().email('Valid email is required').optional().or(z.literal('')),
@@ -42,19 +42,19 @@ const attorneyInfoSchema = z.object({
 // =============================================================================
 
 const passportInfoSchema = z.object({
-  clientLastName: z.string().min(1, 'Last name is required'),
-  clientFirstName: z.string().min(1, 'First name is required'),
+  clientLastName: z.string().optional(),
+  clientFirstName: z.string().optional(),
   clientMiddleName: z.string().optional(),
 
-  passportNumber: z.string().min(1, 'Passport number is required'),
-  countryOfIssue: z.string().min(1, 'Issuing country is required'),
-  dateOfIssue: z.string().min(1, 'Issue date is required'),
-  dateOfExpiration: z.string().min(1, 'Expiration date is required'),
+  passportNumber: z.string().optional(),
+  countryOfIssue: z.string().optional(),
+  dateOfIssue: z.string().optional(),
+  dateOfExpiration: z.string().optional(),
 
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  placeOfBirth: z.string().min(1, 'Place of birth is required'),
-  sex: z.enum(['M', 'F', 'X'], { message: 'Please select sex' }),
-  nationality: z.string().min(1, 'Nationality is required'),
+  dateOfBirth: z.string().optional(),
+  placeOfBirth: z.string().optional(),
+  sex: z.enum(['M', 'F', 'X']).optional(),
+  nationality: z.string().optional(),
 });
 
 // =============================================================================
@@ -74,7 +74,7 @@ const clientConsentSchema = z.object({
   documentsToClient: z.boolean().default(false),
 
   // 2. Date of Signature
-  clientSignatureDate: z.string().min(1, 'Signature date is required'),
+  clientSignatureDate: z.string().optional(),
 });
 
 // =============================================================================
@@ -87,7 +87,7 @@ const attorneySignatureSchema = z.object({
   attorneySignature: z.string().optional(),
 
   // Date of Signature (only visible field)
-  attorneySignatureDate: z.string().min(1, 'Signature date is required'),
+  attorneySignatureDate: z.string().optional(),
 });
 
 // =============================================================================
@@ -138,42 +138,7 @@ export const formA28Schema = z.object({
 
   // Part 5: Attorney Signature
   ...attorneySignatureSchema.shape,
-})
-  .refine(
-    (data) => !data.isAttorney || data.barNumber,
-    {
-      message: 'Bar number is required for attorneys',
-      path: ['barNumber'],
-    }
-  )
-  .refine(
-    (data) => !data.isAttorney || data.licensingAuthority,
-    {
-      message: 'Licensing authority is required for attorneys',
-      path: ['licensingAuthority'],
-    }
-  )
-  .refine(
-    (data) => !data.isAccreditedRep || data.organizationName,
-    {
-      message: 'Organization name is required for accredited representatives',
-      path: ['organizationName'],
-    }
-  )
-  .refine(
-    (data) => !data.isAccreditedRep || data.accreditationDate,
-    {
-      message: 'Accreditation date is required for accredited representatives',
-      path: ['accreditationDate'],
-    }
-  )
-  .refine(
-    (data) => !data.isLawStudent || data.lawStudentName,
-    {
-      message: 'Law student name is required',
-      path: ['lawStudentName'],
-    }
-  );
+});
 
 export type FormA28Data = z.infer<typeof formA28Schema>;
 

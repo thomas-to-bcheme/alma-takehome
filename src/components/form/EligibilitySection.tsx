@@ -38,16 +38,14 @@ export function EligibilitySection(): React.JSX.Element {
               {/* Licensing Authority */}
               <Input
                 label="Licensing Authority (State/Jurisdiction)"
-                required
-                {...register('licensingAuthority')}
+                                {...register('licensingAuthority')}
                 error={errors.licensingAuthority?.message}
               />
 
               {/* 1.b - Bar Number */}
               <Input
                 label="1.b. Bar Number (if applicable)"
-                required
-                {...register('barNumber')}
+                                {...register('barNumber')}
                 error={errors.barNumber?.message}
               />
 
@@ -101,16 +99,14 @@ export function EligibilitySection(): React.JSX.Element {
               {/* 2.b - Organization Name */}
               <Input
                 label="2.b. Name of Recognized Organization"
-                required
-                {...register('organizationName')}
+                                {...register('organizationName')}
                 error={errors.organizationName?.message}
               />
 
               {/* 2.c - Accreditation Date */}
               <DateInput
                 label="2.c. Date of Accreditation"
-                required
-                {...register('accreditationDate')}
+                                {...register('accreditationDate')}
                 error={errors.accreditationDate?.message}
               />
             </div>
@@ -138,8 +134,7 @@ export function EligibilitySection(): React.JSX.Element {
               {/* 4.b - Law Student Name */}
               <Input
                 label="4.b. Name of Law Student or Law Graduate"
-                required
-                {...register('lawStudentName')}
+                                {...register('lawStudentName')}
                 error={errors.lawStudentName?.message}
               />
             </div>
