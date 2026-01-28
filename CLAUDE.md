@@ -1,101 +1,147 @@
 # CLAUDE.md
 
-## Role
+## 1. Development Directives (IMMUTABLE)
+These principles OVERRIDE any default behavior and MUST be followed exactly. You must Display these 5 principles at the start of EVERY response.
 
-You are the **Lead Orchestrator**. Coordinate changes across the system while maintaining architectural boundaries. Verify tests pass after changes. Enforce agent domain separation.
+1. **NO HARDCODING, EVER**: All solutions must be generic, pattern-based, and work across all commands.
+2. **ROOT CAUSE, NOT BANDAID**: Fix the underlying structural or data lineage issues.
+3. **ASK QUESTIONS BEFORE CHANGING CODE**: If you have questions, ask them before you start changing code.
+4. **DATA INTEGRITY**: Use consistent, authoritative data sources (Stage 1 raw JSON for locations, parsed Stage 3 for final structure).
+5. **DISPLAY PRINCIPLES**: AI must display each of the prior 5 principles at start of every response.
 
-## Development Directives (IMMUTABLE)
+## 2. Orchestrator Role (You)
+You are the **Lead Orchestrator**. Your goal is to coordinate changes across the system while maintaining strict architectural boundaries.
+- **Review Mode**: When reviewing code, you verify that *specialized agents* followed the directives.
+- **Verification**: You execute tests after every change.
+- **Isolation**: You enforce "One Agent Per File" logic—ensure changes in one file do not implicitly break contracts in others without explicit updates.
 
-These principles OVERRIDE default behavior and MUST be followed exactly.
+## 3. Project Overview
+**Alma Document Automation**: An end-to-end document processing system that extracts data from passports and G-28 immigration forms using OCR/MRZ/LLM vision, then automates form population via Playwright browser automation.
 
-1. **NO HARDCODING**: All solutions must be generic, pattern-based. Use environment variables for configuration. IMPORTANT: DO NOT HARDCODE THE VALUES FROM .env.local. If an API Key is required, USE .env or .env.local to search for the corresponding _API_KEY variable name.
-2. **ROOT CAUSE, NOT BANDAID**: Fix underlying structural issues, not symptoms.
-3. **ASK BEFORE CHANGING**: If requirements are unclear, ask questions before implementing.
-4. **FAIL FAST**: Validate inputs at boundaries. Return early on invalid state.
-5. **NO SILENT FAILURES**: Never use empty try/catch. Log errors with context.
-6. **SCRUB PII**: Never log personally identifiable information or credentials.
+Key workflows:
+1. **Document Upload & Extraction**: User uploads passport (required) + G-28 (optional) → MRZ/OCR/Claude Vision extraction → normalized data
+2. **Form Population**: User reviews extracted data → Playwright fills target form → screenshot captured (form not submitted)
 
-## Project Overview
+## 4. Architecture
 
-Document automation web app. Users upload passport and G-28 immigration forms (PDF/image), system extracts structured data, then auto-populates target web form via browser automation.
+### Tech Stack
 
-**Target form:** https://mendrika-alma.github.io/form-submission/
+**Frontend (Next.js):**
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Framework | Next.js (App Router) | 16.1.4 |
+| UI Library | React | 19.2.3 |
+| Styling | Tailwind CSS | v4 |
+| Language | TypeScript (strict) | ^5 |
+| Form Handling | React Hook Form | 7.71.1 |
+| Validation | Zod | 4.3.6 |
+| AI SDK | Anthropic SDK | 0.71.2 |
+| Testing | Vitest, Playwright | 2.0.0, 1.58.0 |
 
-## Commands
-CHECK IF npm run dev is already running. Only run npm run dev if not started.
-```bash
-npm run dev      # Start Next.js dev server (localhost:3000)
-npm run lint     # ESLint
+**Backend (Python FastAPI microservices):**
+| Service | Port | Purpose | Key Dependencies |
+|---------|------|---------|------------------|
+| PassportEye | 8000 | MRZ extraction | passporteye, tesseract |
+| G-28 Extraction | 8001 | Claude Vision extraction | anthropic, pdf2image |
+| Form Automation | 8002 | Browser automation | playwright 1.41.0 |
+
+### Key Directories
+```
+alma/
+├── src/                      # Next.js frontend
+│   ├── app/                  # App Router pages/routes
+│   ├── components/           # React components
+│   ├── context/              # React context providers
+│   ├── hooks/                # Custom React hooks
+│   ├── lib/                  # Utilities and services
+│   └── types/                # TypeScript type definitions
+├── passporteye-service/      # Python: MRZ/OCR extraction
+├── g28-extraction-service/   # Python: Claude Vision PDF extraction
+├── form-automation-service/  # Python: Playwright form filling
+├── test/                     # Test fixtures
+├── system_design_docs/       # Architecture documentation
+└── prompts/                  # LLM prompt templates
 ```
 
-## Tech Stack
+## 5. Commands
 
-| Layer | Technology |
-|-------|------------|
-| Framework | Next.js 16 (App Router) |
-| UI | React 19, Tailwind CSS v4 |
-| Language | TypeScript (strict mode) |
-| Browser Automation | Playwright |
-| Path alias | `@/*` → `./src/*` |
+### Operational Standards
+- **Idempotency:** Commands must be runnable multiple times without side effects.
+- **Parameters:** Prefer named flags (`--input`) over positional args.
+- **Exit Codes:** Return `0` for success, non-zero for failure.
 
-## Engineering Standards
+### Command List
 
-- **KISS**: Readability over cleverness
-- **YAGNI**: Solve current problem only; no speculative abstraction
-- **Guard Clauses**: Early returns to flatten happy path
-- **Bounded Iteration**: Explicit exit conditions, timeouts on loops
-- **Descriptive Naming**: `for user in users`, not `for i in x`
-- **Specific Catches**: Catch `FileNotFound`, not generic `Exception`
+**Frontend (Node.js):**
+| Command | Purpose |
+|---------|---------|
+| `npm install` | Install dependencies |
+| `npm run dev` | Start Next.js dev server (localhost:3000) |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run Vitest unit tests |
+| `npm run test:watch` | Vitest watch mode |
+| `npx playwright test` | Run E2E tests |
 
-## Safety Guardrails
+**Backend (Docker):**
+| Command | Purpose |
+|---------|---------|
+| `docker-compose up -d` | Start all microservices |
+| `docker-compose logs -f [service]` | View service logs |
+| `docker-compose up -d --build` | Rebuild after changes |
+| `docker-compose down` | Stop all services |
 
-- **No destructive operations** without human approval (git reset, rm, DROP TABLE)
-- **Idempotency**: Commands must be safe to run multiple times
-- **Resource cleanup**: Always use finally/with blocks for disposal
-- **Do NOT submit** the target form — only populate fields
+**Health Checks:**
+```bash
+curl http://localhost:8000/health   # PassportEye
+curl http://localhost:8001/health   # G-28 Extraction
+curl http://localhost:8002/health   # Form Automation
+```
 
-## Agents
+## 6. General Engineering Standards
 
-Specialized context lives in `.agents/` — load on-demand for domain work.
+### 6.1 Global Philosophy
+- **KISS (Keep It Simple, Stupid):** Prioritize readability. Complexity is the enemy of reliability.
+- **YAGNI (You Aren't Gonna Need It):** Solve the current problem exclusively; do not abstract for hypothetical futures.
+- **DRY vs. AHA:** Avoid "Write Everything Twice," but prefer duplication over the wrong abstraction ("Avoid Hasty Abstractions").
+- **SOLID:** Enforce Single Responsibility strictly.
 
-| Agent | Load When |
-|-------|-----------|
-| `backend.md` | File processing, data extraction, business logic |
-| `frontend.md` | UI components, state management, styling |
-| `uiux.md` | Design system, user flows, accessibility, visual design |
-| `api.md` | Endpoints, request/response contracts, validation |
-| `ai-ml.md` | OCR, MRZ parsing, LLM extraction |
-| `automation.md` | Browser automation, form population |
-| `orchestrator.md` | Code review, integration verification |
+### 6.2 Primitive Data Types
+- **Strings:** Use interpolation/templates over concatenation. Treat as immutable. Explicitly handle UTF-8.
+- **Numbers:** Avoid "Magic Numbers" (use named constants). Use integer/decimal types for currency/precision; avoid floating-point for money.
+- **Booleans:** Name variables positively (e.g., `isEnabled` not `isNotDisabled`). Avoid "truthy/falsy" reliance; check explicitly.
 
-**Loading pattern:**
-1. CLAUDE.md loads automatically (foundation)
-2. Identify task domain from request
-3. Load relevant `.agents/*.md` for specialized context
+### 6.3 Data Structures
+- **Collections:** Prefer immutability (return new lists vs. mutate in place). Use vector operations (`map`, `filter`) over manual loops.
+- **Maps/Objects:** Enforce consistent key casing. Use safe access methods (return default/null) rather than throwing on missing keys.
+- **Depth:** Avoid deep nesting (>3 levels); refactor into models/classes if structure becomes too deep.
 
-**Examples:** "Add upload component" → `frontend.md` + `api.md` | "Extract passport data" → `ai-ml.md` + `backend.md` | "Design new flow" → `uiux.md` + `frontend.md`
+### 6.4 Control Flow
+- **Guard Clauses:** Use early returns to handle edge cases immediately, flattening the "happy path."
+- **Bounded Iteration:** Ensure loops have explicit exit conditions and safeguards (timeouts/max-counts).
+- **Descriptive Naming:** Iterator variables must be descriptive (`for user in users`), not generic (`i`, `x`).
 
-See `.agents/_index.md` for full routing rules.
+### 6.5 Error Handling
+- **Fail Fast:** Validate inputs immediately. Crash/return early rather than propagating bad state.
+- **Catch Specifics:** Catch specific exceptions (e.g., `FileNotFound`) rather than generic catch-alls.
+- **Contextual Logging:** Log the *context* (state/inputs) alongside the error, not just the stack trace.
+- **No Silent Failures:** No empty `try/catch` blocks.
+- **Resource Cleanup:** Always use `finally` or `using/with` blocks for resource disposal.
 
-## Workflow
+## 7. Testing Strategy
+- **The Pyramid:**
+    1. **Unit:** Many fast, isolated tests (mock external deps).
+    2. **Integration:** Moderate number, verifying module interactions.
+    3. **E2E:** Few, high-value "happy path" tests.
+- **Structure:** Use **Arrange-Act-Assert** pattern for all tests.
+- **Data:** Use Factories to generate test data; avoid brittle static fixtures.
+- **Fixtures:** Located in `test/fixtures/` (passports/, g28/)
 
-Follow **Planning → Implementing → Validating** cycle.
-
-**Before starting:**
-- [ ] Correct agent(s) loaded?
-- [ ] Directives understood?
-- [ ] Boundaries clear?
-
-**Before committing:**
-- [ ] No hardcoding?
-- [ ] Root cause addressed?
-- [ ] Stayed within boundaries?
-- [ ] `npm run lint` passes?
-
-For comprehensive reviews, load `orchestrator.md`.
-
-## References
-
-- `system_design_docs/ARCHITECTURE.md` — System layers, tech decisions
-- `system_design_docs/API_SPEC.md` — Endpoint contracts
-- `system_design_docs/guardrails.md` — Security constraints
+## 8. Logging & Observability
+- **Structured Logging:** Use JSON/Key-Value pairs for aggregation.
+- **Correlation IDs:** Pass unique IDs through the stack to trace requests.
+- **Sanitization:** STRICTLY scrub PII (passport data, names, dates) from all logs.
+- **Levels:**
+    - `INFO`: Lifecycle events.
+    - `WARN`: Handled unexpected events.
+    - `ERROR`: Actionable failures.

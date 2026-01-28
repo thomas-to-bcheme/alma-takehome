@@ -71,10 +71,14 @@ export function ScreenshotPreview({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              {result.success ? 'Form Filled Successfully' : 'Form Fill Completed with Errors'}
+              {result.success
+                ? (result.screenshotBase64 ? 'Form Filled Successfully' : 'Form Opened Successfully')
+                : 'Form Fill Completed with Errors'}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Completed in {(result.durationMs / 1000).toFixed(1)}s
+              {result.durationMs > 0
+                ? `Completed in ${(result.durationMs / 1000).toFixed(1)}s`
+                : 'Extension will auto-fill the form'}
             </p>
           </div>
         </div>
@@ -136,8 +140,8 @@ export function ScreenshotPreview({
         </div>
       )}
 
-      {/* Screenshot */}
-      {result.screenshotBase64 && (
+      {/* Screenshot or New Tab Message */}
+      {result.screenshotBase64 ? (
         <div className="p-4">
           <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
             <img
@@ -145,6 +149,27 @@ export function ScreenshotPreview({
               alt="Filled form screenshot"
               className="w-full"
             />
+          </div>
+        </div>
+      ) : (
+        <div className="p-4">
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+            <div className="flex items-start gap-3">
+              <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h4 className="text-sm font-medium text-green-800 dark:text-green-200">
+                  Form Opened in New Tab
+                </h4>
+                <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+                  The target form has been opened in a new browser tab with your data pre-filled via URL parameters.
+                </p>
+                <p className="mt-2 text-xs text-green-600 dark:text-green-400">
+                  Check the new tab to review and submit the form.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

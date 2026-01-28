@@ -6,6 +6,7 @@ import { FormA28Provider } from '@/context/FormA28Context';
 import { UploadSection } from './UploadSection';
 import { FormA28 } from '@/components/form';
 import { mapExtractedToForm } from '@/lib/mapExtractedToForm';
+import { buildFormUrl } from '@/lib/submission/buildFormUrl';
 import { AutomationProgress, ScreenshotPreview } from '@/components/automation';
 import { clearDraftStorage } from '@/hooks/useDraftPersistence';
 import type { AutomationStatus, FormFillResult } from '@/types';
@@ -26,29 +27,32 @@ function MainContent(): React.JSX.Element {
   }, [extractedData]);
 
   // Handle form submission to trigger automation
+  // Opens the target form in a new tab with form data as URL query parameters
   const handleFillForm = useCallback(async (data: FormA28Data): Promise<void> => {
     setAutomationStatus('running');
     setAutomationResult(null);
     setAutomationError(null);
 
     try {
-      const response = await fetch('/api/fill-form', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ formData: data }),
+      // Build URL with query parameters
+      const formUrl = buildFormUrl(data);
+
+      // Open target form in new tab
+      window.open(formUrl, '_blank');
+
+      // Update status to indicate form was opened
+      setAutomationStatus('success');
+
+      // Create a result object to show success
+      setAutomationResult({
+        success: true,
+        filledFields: [],
+        skippedFields: [],
+        failedFields: [],
+        durationMs: 0,
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error?.message ?? 'Form fill failed');
-      }
-
-      setAutomationResult(result.data);
-      setAutomationStatus('success');
-      // Clear draft on successful form fill
+      // Clear draft on successful form open
       clearDraftStorage();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
