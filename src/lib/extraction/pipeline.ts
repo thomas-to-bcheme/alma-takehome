@@ -12,17 +12,13 @@ import {
   isPassportEyeEnabled,
   PassportEyeError,
 } from './passporteye-client';
-// Note: Docker Claude service imports removed - using direct Claude Vision API only
+// Note: Using Gemini Vision API with native PDF support
 import {
-  extractG28PageWithClaude,
-  isClaudeVisionEnabled,
-  ClaudeVisionError,
-} from './claude-vision-client';
-import {
-  convertPdfToImagesTS,
-  isPdfMimeType,
-  PdfTsConversionError,
-} from './pdf-ts-converter';
+  extractG28WithGemini,
+  isGeminiVisionEnabled,
+  GeminiVisionError,
+  type SupportedMediaType,
+} from './gemini-vision-client';
 import { extractFromMRZ } from './mrz/parser';
 import { PASSPORT_TEMPLATE } from './templates';
 
@@ -35,8 +31,8 @@ import { PASSPORT_TEMPLATE } from './templates';
  * 3. If MRZ fails, fall back to NuExtract API
  *
  * For G-28 forms:
- * - Uses Claude Vision API exclusively (no fallback)
- * - Requires ANTHROPIC_API_KEY environment variable
+ * - Uses Gemini Vision API exclusively (no fallback)
+ * - Requires GOOGLE_GENERATIVE_AI_API_KEY environment variable
  * - Errors are explicit - no silent failures
  */
 
@@ -243,56 +239,32 @@ export async function extractPassportData(
 }
 
 /**
- * Merge G-28 extraction results from multiple pages
- * Takes first non-empty value for each field
+ * Check if a mime type is a PDF
  */
-function mergeG28Results(pageResults: Partial<G28Data>[]): Partial<G28Data> {
-  const merged: Partial<G28Data> = {};
+function isPdfMimeType(mimeType: string | undefined): boolean {
+  return mimeType === 'application/pdf';
+}
 
-  const fields: (keyof G28Data)[] = [
-    'attorneyName',
-    'firmName',
-    'street',
-    'suite',
-    'city',
-    'state',
-    'zipCode',
-    'phone',
-    'email',
-    'clientName',
-    'barNumber',
-    'isAttorney',
-    'isAccreditedRep',
-    'clientPhone',
-    'clientEmail',
-  ];
-
-  for (const field of fields) {
-    for (const result of pageResults) {
-      const value = result[field];
-      // Take first non-empty value
-      if (value !== undefined && value !== null && value !== '') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (merged as any)[field] = value;
-        break;
-      }
-    }
-  }
-
-  return merged;
+/**
+ * Check if a mime type is a supported image
+ */
+function isImageMimeType(
+  mimeType: string | undefined
+): mimeType is 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp' {
+  return ['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(mimeType ?? '');
 }
 
 /**
  * Extract G-28 form data from a file buffer
  *
- * Uses Claude Vision API directly for page-by-page extraction.
- * For PDFs, converts to page images first via PDF conversion service.
+ * Uses Gemini Vision API directly with native PDF support.
+ * PDFs are sent directly to Claude without conversion.
  *
- * NOTE: Claude Vision is the only extraction method for G-28 forms.
- * NuExtract fallback has been removed - errors will be explicit.
+ * NOTE: Gemini Vision is the only extraction method for G-28 forms.
+ * Errors will be explicit - no silent failures.
  *
  * @param fileBuffer - Raw file bytes (PDF or image)
- * @param mimeType - MIME type of the file (required for Claude Vision)
+ * @param mimeType - MIME type of the file (required for Gemini Vision)
  */
 export async function extractG28Data(
   fileBuffer: Buffer,
@@ -301,149 +273,13 @@ export async function extractG28Data(
   const errors: ExtractionError[] = [];
   const warnings: string[] = [];
 
-  // Step 1: Convert PDF to page images (or use image directly)
-  let pageImages: readonly string[];
-  // Track the media type for Claude Vision API
-  // For PDFs: converted pages are PNG
-  // For direct images: use the original mimeType
-  let imageMediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp' = 'image/png';
-
-  if (isPdfMimeType(mimeType)) {
-    console.log('[G28 Extraction] PDF detected, converting to page images...');
-    try {
-      const conversionResult = await convertPdfToImagesTS(fileBuffer);
-      pageImages = conversionResult.pages;
-      imageMediaType = 'image/png'; // PDF pages are converted to PNG
-      console.log(`[G28 Extraction] Converted PDF to ${conversionResult.processedCount} page images`);
-
-      // Warn if not all pages were processed
-      if (conversionResult.pageCount > conversionResult.processedCount) {
-        warnings.push(
-          `PDF has ${conversionResult.pageCount} pages, processed first ${conversionResult.processedCount}`
-        );
-      }
-    } catch (conversionError) {
-      if (conversionError instanceof PdfTsConversionError) {
-        console.error(`[G28 Extraction] PDF conversion failed: ${conversionError.message}`);
-        errors.push({
-          type: 'API_ERROR',
-          message: `PDF conversion failed: ${conversionError.message}`,
-        });
-      } else {
-        errors.push({
-          type: 'API_ERROR',
-          message: 'PDF conversion failed unexpectedly',
-        });
-      }
-      return {
-        success: false,
-        data: null,
-        method: 'combined',
-        confidence: 0,
-        errors,
-        warnings,
-      };
-    }
-  } else {
-    // For images, use the file directly and preserve original media type
-    pageImages = [bufferToBase64(fileBuffer)];
-    // Map mimeType to Claude Vision supported types
-    if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
-      imageMediaType = 'image/jpeg';
-    } else if (mimeType === 'image/gif') {
-      imageMediaType = 'image/gif';
-    } else if (mimeType === 'image/webp') {
-      imageMediaType = 'image/webp';
-    } else {
-      imageMediaType = 'image/png'; // Default to PNG for unknown types
-    }
-    console.log(`[G28 Extraction] Using direct image with media type: ${imageMediaType}`);
-  }
-
-  // Step 2: Try direct Claude Vision API (page-by-page)
-  const claudeVisionEnabled = isClaudeVisionEnabled();
-  console.log('[G28 Extraction] Claude Vision enabled:', claudeVisionEnabled);
-  console.log('[G28 Extraction] ANTHROPIC_API_KEY present:', Boolean(process.env.ANTHROPIC_API_KEY));
-
-  if (claudeVisionEnabled) {
-    console.log('[G28 Extraction] Using direct Claude Vision API...');
-    try {
-      const pageResults: Partial<G28Data>[] = [];
-
-      for (let i = 0; i < pageImages.length; i++) {
-        console.log(`[G28 Extraction] Processing page ${i + 1}/${pageImages.length} with Claude Vision (${imageMediaType})...`);
-        const pageResult = await extractG28PageWithClaude(pageImages[i], imageMediaType);
-        pageResults.push(pageResult);
-        console.log(`[G28 Extraction] Page ${i + 1} result:`, JSON.stringify(pageResult, null, 2));
-      }
-
-      // Merge results from all pages
-      const mergedData = mergeG28Results(pageResults);
-      console.log('[G28 Extraction] Merged result:', JSON.stringify(mergedData, null, 2));
-
-      // Validate with Zod
-      const validation = G28DataSchema.safeParse(mergedData);
-
-      if (validation.success) {
-        return {
-          success: true,
-          data: validation.data,
-          method: 'combined', // 'combined' indicates Claude Vision method
-          confidence: 0.95,
-          errors: [],
-          warnings,
-        };
-      }
-
-      // Partial success - return data even if validation fails
-      warnings.push('Claude Vision extracted data but validation failed');
-      return {
-        success: false,
-        data: mergedData as G28Data,
-        method: 'combined',
-        confidence: 0.7,
-        errors: [{
-          type: 'VALIDATION_FAILED',
-          message: 'Extracted G-28 data failed validation',
-          fields: validation.error.issues.map((i) => i.path.join('.')),
-        }],
-        warnings,
-      };
-    } catch (error) {
-      // Claude Vision is primary method - propagate errors instead of falling back
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`[G28 Extraction] Claude Vision failed: ${errorMessage}`);
-
-      if (error instanceof ClaudeVisionError) {
-        errors.push({
-          type: 'API_ERROR',
-          message: `Claude Vision extraction failed: ${error.message}`,
-          statusCode: error.statusCode,
-        });
-      } else {
-        errors.push({
-          type: 'API_ERROR',
-          message: `Claude Vision extraction failed: ${errorMessage}`,
-        });
-      }
-
-      return {
-        success: false,
-        data: null,
-        method: 'combined',
-        confidence: 0,
-        errors,
-        warnings,
-      };
-    }
-  } else {
-    // Claude Vision not enabled - this is a configuration error
-    console.error('[G28 Extraction] Claude Vision is not enabled - ANTHROPIC_API_KEY missing');
+  // Step 1: Validate Gemini Vision is enabled
+  if (!isGeminiVisionEnabled()) {
+    console.error('[G28 Extraction] Gemini Vision is not enabled - GOOGLE_GENERATIVE_AI_API_KEY missing');
     errors.push({
       type: 'API_ERROR',
-      message: 'Claude Vision is not enabled. Set ANTHROPIC_API_KEY environment variable.',
+      message: 'Gemini Vision is not enabled. Set GOOGLE_GENERATIVE_AI_API_KEY environment variable.',
     });
-
     return {
       success: false,
       data: null,
@@ -454,20 +290,101 @@ export async function extractG28Data(
     };
   }
 
-  // NOTE: This point is unreachable - all code paths above return
-  // Keeping this as a fallback safety net
-  console.error('[G28 Extraction] Unexpected: reached unreachable code');
-  errors.push({
-    type: 'API_ERROR',
-    message: 'Unexpected control flow error in G-28 extraction',
-  });
+  // Step 2: Validate mime type
+  if (!mimeType || (!isPdfMimeType(mimeType) && !isImageMimeType(mimeType))) {
+    console.error(`[G28 Extraction] Unsupported file type: ${mimeType}`);
+    errors.push({
+      type: 'INVALID_FILE_TYPE',
+      message: `Unsupported file type: ${mimeType}. Accepted: PDF, PNG, JPEG, GIF, WEBP`,
+    });
+    return {
+      success: false,
+      data: null,
+      method: 'combined',
+      confidence: 0,
+      errors,
+      warnings,
+    };
+  }
 
-  return {
-    success: false,
-    data: null,
-    method: 'combined',
-    confidence: 0,
-    errors,
-    warnings,
-  };
+  // Step 3: Convert buffer to base64 and determine media type
+  const fileBase64 = bufferToBase64(fileBuffer);
+  let mediaType: SupportedMediaType;
+
+  if (isPdfMimeType(mimeType)) {
+    mediaType = 'application/pdf';
+    console.log('[G28 Extraction] Sending PDF directly to Gemini Vision (native PDF support)...');
+  } else if (mimeType === 'image/jpeg') {
+    mediaType = 'image/jpeg';
+    console.log('[G28 Extraction] Sending JPEG image to Gemini Vision...');
+  } else if (mimeType === 'image/gif') {
+    mediaType = 'image/gif';
+    console.log('[G28 Extraction] Sending GIF image to Gemini Vision...');
+  } else if (mimeType === 'image/webp') {
+    mediaType = 'image/webp';
+    console.log('[G28 Extraction] Sending WebP image to Gemini Vision...');
+  } else {
+    mediaType = 'image/png';
+    console.log('[G28 Extraction] Sending PNG image to Gemini Vision...');
+  }
+
+  // Step 4: Call Gemini Vision API
+  try {
+    const extractedData = await extractG28WithGemini(fileBase64, mediaType);
+    console.log('[G28 Extraction] Gemini response:', JSON.stringify(extractedData, null, 2));
+
+    // Step 5: Validate with Zod
+    const validation = G28DataSchema.safeParse(extractedData);
+
+    if (validation.success) {
+      return {
+        success: true,
+        data: validation.data,
+        method: 'combined',
+        confidence: 0.95,
+        errors: [],
+        warnings,
+      };
+    }
+
+    // Partial success - return data even if validation fails
+    warnings.push('Gemini Vision extracted data but validation failed');
+    return {
+      success: false,
+      data: extractedData as G28Data,
+      method: 'combined',
+      confidence: 0.7,
+      errors: [{
+        type: 'VALIDATION_FAILED',
+        message: 'Extracted G-28 data failed validation',
+        fields: validation.error.issues.map((i) => i.path.join('.')),
+      }],
+      warnings,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[G28 Extraction] Gemini Vision failed: ${errorMessage}`);
+
+    if (error instanceof GeminiVisionError) {
+      errors.push({
+        type: 'API_ERROR',
+        message: `Gemini Vision extraction failed: ${error.message}`,
+        statusCode: error.statusCode,
+      });
+    } else {
+      errors.push({
+        type: 'API_ERROR',
+        message: `Gemini Vision extraction failed: ${errorMessage}`,
+      });
+    }
+
+    return {
+      success: false,
+      data: null,
+      method: 'combined',
+      confidence: 0,
+      errors,
+      warnings,
+    };
+  }
 }
