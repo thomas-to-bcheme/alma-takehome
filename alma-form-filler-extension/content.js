@@ -11,58 +11,55 @@
   'use strict';
 
   // Field mappings: formData key -> CSS selector
-  // Based on shared/field-mappings.json
+  // Mapped to actual form field IDs at https://mendrika-alma.github.io/form-submission/
   const FIELD_MAPPINGS = {
-    // Attorney Info
-    onlineAccountNumber: '#attorney-online-account',
-    attorneyLastName: '#attorney-last-name',
-    attorneyFirstName: '#attorney-first-name',
-    attorneyMiddleName: '#attorney-middle-name',
-    street: '#attorney-street',
-    aptSteFlr: '#attorney-apt-type',
-    aptSteFlrNumber: '#attorney-apt-number',
-    city: '#attorney-city',
-    state: '#attorney-state',
-    zipCode: '#attorney-zip',
-    country: '#attorney-country',
-    daytimePhone: '#attorney-daytime-phone',
-    mobilePhone: '#attorney-mobile-phone',
-    email: '#attorney-email',
+    // Attorney Info (Part 1)
+    onlineAccountNumber: '#online-account',
+    attorneyLastName: '#family-name',
+    attorneyFirstName: '#given-name',
+    attorneyMiddleName: '#middle-name',
+    street: '#street-number',
+    aptSteFlrNumber: '#apt-number',
+    city: '#city',
+    state: '#state',
+    zipCode: '#zip',
+    country: '#country',
+    daytimePhone: '#daytime-phone',
+    mobilePhone: '#mobile-phone',
+    email: '#email',
 
-    // Eligibility
-    isAttorney: '#eligibility-attorney',
-    barNumber: '#eligibility-bar-number',
-    licensingAuthority: '#eligibility-licensing-authority',
-    isSubjectToOrders: 'input[name="subject-to-orders"]',
-    lawFirmOrOrganization: '#eligibility-law-firm',
-    isAccreditedRep: '#eligibility-accredited-rep',
-    organizationName: '#eligibility-organization-name',
-    accreditationDate: '#eligibility-accreditation-date',
-    isAssociatedWithAttorney: '#eligibility-associated-attorney',
-    isLawStudent: '#eligibility-law-student',
-    lawStudentName: '#eligibility-law-student-name',
+    // Eligibility (Part 2)
+    isAttorney: '#attorney-eligible',
+    barNumber: '#bar-number',
+    licensingAuthority: '#licensing-authority',
+    lawFirmOrOrganization: '#law-firm',
+    isAccreditedRep: '#accredited-rep',
+    organizationName: '#recognized-org',
+    accreditationDate: '#accreditation-date',
+    isAssociatedWithAttorney: '#associated-with',
+    associatedWithName: '#associated-with-name',
+    isLawStudent: '#law-student',
+    lawStudentName: '#student-name',
 
-    // Passport/Client Info
-    clientLastName: '#client-last-name',
-    clientFirstName: '#client-first-name',
-    clientMiddleName: '#client-middle-name',
+    // Passport/Beneficiary Info (Part 3)
+    clientLastName: '#passport-surname',
+    clientFirstName: '#passport-given-names',
     passportNumber: '#passport-number',
-    countryOfIssue: '#passport-country-issue',
-    dateOfIssue: '#passport-date-issue',
-    dateOfExpiration: '#passport-date-expiration',
-    dateOfBirth: '#client-date-of-birth',
-    placeOfBirth: '#client-place-of-birth',
-    sex: 'input[name="client-sex"]',
-    nationality: '#client-nationality',
-    alienNumber: '#client-alien-number',
+    countryOfIssue: '#passport-country',
+    dateOfIssue: '#passport-issue-date',
+    dateOfExpiration: '#passport-expiry-date',
+    dateOfBirth: '#passport-dob',
+    placeOfBirth: '#passport-pob',
+    sex: '#passport-sex',
+    nationality: '#passport-nationality',
 
-    // Client Consent
-    noticeToAttorney: '#consent-notice-attorney',
-    documentsToAttorney: '#consent-docs-attorney',
-    documentsToClient: '#consent-docs-client',
+    // Client Consent (Part 4)
+    noticeToAttorney: '#notices-to-attorney',
+    documentsToAttorney: '#documents-to-attorney',
+    documentsToClient: '#docs-to-me',
     clientSignatureDate: '#client-signature-date',
 
-    // Attorney Signature
+    // Attorney Signature (Part 5)
     attorneySignatureDate: '#attorney-signature-date',
   };
 
@@ -77,9 +74,10 @@
     'documentsToClient',
   ];
 
-  const RADIO_FIELDS = ['isSubjectToOrders', 'sex'];
+  // Fields requiring special custom handling
+  const SPECIAL_FIELDS = ['aptSteFlr', 'isSubjectToOrders'];
 
-  const SELECT_FIELDS = ['aptSteFlr', 'state'];
+  const SELECT_FIELDS = ['state', 'sex'];
 
   /**
    * Parse form data from URL hash
@@ -141,26 +139,64 @@
   }
 
   /**
-   * Fill a radio button group
+   * Fill apartment type checkboxes (#apt, #ste, #flr)
+   * The form has 3 separate checkboxes instead of a dropdown
    */
-  function fillRadio(selector, value) {
-    // For radio buttons, we need to find the one with the matching value
-    const radios = document.querySelectorAll(selector);
-    if (radios.length === 0) {
-      console.warn('[Alma Form Filler] Radio buttons not found:', selector);
+  function fillAptType(value) {
+    if (!value) return false;
+
+    const normalizedValue = String(value).toLowerCase();
+    const checkboxMap = {
+      apt: '#apt',
+      ste: '#ste',
+      flr: '#flr',
+    };
+
+    const selector = checkboxMap[normalizedValue];
+    if (!selector) {
+      console.warn('[Alma Form Filler] Unknown apt type:', value);
       return false;
     }
 
-    for (const radio of radios) {
-      if (radio.value === value || radio.value.toLowerCase() === String(value).toLowerCase()) {
-        radio.checked = true;
-        triggerEvents(radio);
-        return true;
-      }
+    const checkbox = document.querySelector(selector);
+    if (!checkbox) {
+      console.warn('[Alma Form Filler] Apt checkbox not found:', selector);
+      return false;
     }
 
-    console.warn('[Alma Form Filler] Radio value not found:', value, 'in', selector);
-    return false;
+    checkbox.checked = true;
+    triggerEvents(checkbox);
+    return true;
+  }
+
+  /**
+   * Fill isSubjectToOrders field
+   * The form has 2 checkboxes: #not-subject and #am-subject
+   */
+  function fillSubjectToOrders(value) {
+    // Determine which checkbox to check based on value
+    // value could be 'not', 'am', true, false, 'yes', 'no'
+    const normalizedValue = String(value).toLowerCase();
+    let selector;
+
+    if (normalizedValue === 'not' || normalizedValue === 'no' || normalizedValue === 'false' || value === false) {
+      selector = '#not-subject';
+    } else if (normalizedValue === 'am' || normalizedValue === 'yes' || normalizedValue === 'true' || value === true) {
+      selector = '#am-subject';
+    } else {
+      console.warn('[Alma Form Filler] Unknown isSubjectToOrders value:', value);
+      return false;
+    }
+
+    const checkbox = document.querySelector(selector);
+    if (!checkbox) {
+      console.warn('[Alma Form Filler] Subject to orders checkbox not found:', selector);
+      return false;
+    }
+
+    checkbox.checked = true;
+    triggerEvents(checkbox);
+    return true;
   }
 
   /**
@@ -204,6 +240,14 @@
       return false;
     }
 
+    // Handle special fields with custom logic
+    if (fieldName === 'aptSteFlr') {
+      return fillAptType(value);
+    }
+    if (fieldName === 'isSubjectToOrders') {
+      return fillSubjectToOrders(value);
+    }
+
     const selector = FIELD_MAPPINGS[fieldName];
     if (!selector) {
       console.warn('[Alma Form Filler] Unknown field:', fieldName);
@@ -212,8 +256,6 @@
 
     if (CHECKBOX_FIELDS.includes(fieldName)) {
       return fillCheckbox(selector, value);
-    } else if (RADIO_FIELDS.includes(fieldName)) {
-      return fillRadio(selector, value);
     } else if (SELECT_FIELDS.includes(fieldName)) {
       return fillSelect(selector, value);
     } else {
