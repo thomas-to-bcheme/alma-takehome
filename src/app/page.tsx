@@ -65,7 +65,7 @@ function MainContent(): React.JSX.Element {
           <div className="flex items-start gap-3">
             <span className="text-amber-600 dark:text-amber-400">ℹ️</span>
             <div className="text-sm text-amber-800 dark:text-amber-200">
-              <p className="font-medium">Chrome Extension Not Detected</p>
+              <p className="font-medium">Chrome Extension Required</p>
               <p className="mt-1 text-amber-700 dark:text-amber-300">
                 For the best experience, install the Alma Form Filler extension.
                 When you click &quot;Fill Target Form&quot;, the form will open in a new tab.

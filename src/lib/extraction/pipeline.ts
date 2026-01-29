@@ -303,12 +303,17 @@ export async function extractG28Data(
 
   // Step 1: Convert PDF to page images (or use image directly)
   let pageImages: readonly string[];
+  // Track the media type for Claude Vision API
+  // For PDFs: converted pages are PNG
+  // For direct images: use the original mimeType
+  let imageMediaType: 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp' = 'image/png';
 
   if (isPdfMimeType(mimeType)) {
     console.log('[G28 Extraction] PDF detected, converting to page images...');
     try {
       const conversionResult = await convertPdfToImagesTS(fileBuffer);
       pageImages = conversionResult.pages;
+      imageMediaType = 'image/png'; // PDF pages are converted to PNG
       console.log(`[G28 Extraction] Converted PDF to ${conversionResult.processedCount} page images`);
 
       // Warn if not all pages were processed
@@ -340,8 +345,19 @@ export async function extractG28Data(
       };
     }
   } else {
-    // For images, use the file directly
+    // For images, use the file directly and preserve original media type
     pageImages = [bufferToBase64(fileBuffer)];
+    // Map mimeType to Claude Vision supported types
+    if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
+      imageMediaType = 'image/jpeg';
+    } else if (mimeType === 'image/gif') {
+      imageMediaType = 'image/gif';
+    } else if (mimeType === 'image/webp') {
+      imageMediaType = 'image/webp';
+    } else {
+      imageMediaType = 'image/png'; // Default to PNG for unknown types
+    }
+    console.log(`[G28 Extraction] Using direct image with media type: ${imageMediaType}`);
   }
 
   // Step 2: Try direct Claude Vision API (page-by-page)
@@ -355,8 +371,8 @@ export async function extractG28Data(
       const pageResults: Partial<G28Data>[] = [];
 
       for (let i = 0; i < pageImages.length; i++) {
-        console.log(`[G28 Extraction] Processing page ${i + 1}/${pageImages.length} with Claude Vision...`);
-        const pageResult = await extractG28PageWithClaude(pageImages[i], 'image/png');
+        console.log(`[G28 Extraction] Processing page ${i + 1}/${pageImages.length} with Claude Vision (${imageMediaType})...`);
+        const pageResult = await extractG28PageWithClaude(pageImages[i], imageMediaType);
         pageResults.push(pageResult);
         console.log(`[G28 Extraction] Page ${i + 1} result:`, JSON.stringify(pageResult, null, 2));
       }
