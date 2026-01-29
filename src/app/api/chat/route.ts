@@ -1,11 +1,11 @@
 /**
  * Streaming chat API route with tool calling
  *
- * Uses Vercel AI SDK to stream responses from Claude with browser tool support.
+ * Uses Vercel AI SDK to stream responses from Gemini with browser tool support.
  * Tool execution happens client-side via the useBrowserAgent hook.
  */
 
-import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { browserTools } from '@/lib/agent/tools';
@@ -79,9 +79,9 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // Check for API key
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
-      console.error('[Chat API] ANTHROPIC_API_KEY not configured');
+      console.error('[Chat API] GOOGLE_GENERATIVE_AI_API_KEY not configured');
       return Response.json(
         {
           success: false,
@@ -98,7 +98,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // Stream response with tool calling
     const result = streamText({
-      model: anthropic(process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514'),
+      model: google(process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'),
       system: SYSTEM_PROMPT,
       messages,
       tools: {

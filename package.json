@@ -11,8 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.0.0",
-    "@anthropic-ai/sdk": "^0.71.2",
+    "@ai-sdk/google": "^1.0.0",
     "@napi-rs/canvas": "^0.1.65",
     "@hookform/resolvers": "^5.2.2",
     "ai": "^4.0.0",

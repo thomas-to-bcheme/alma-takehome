@@ -1,4 +1,11 @@
 /**
+ * @deprecated This file is no longer used. Claude Vision API now supports
+ * PDFs natively via DocumentBlockParam. Use extractG28WithClaude() from
+ * claude-vision-client.ts instead.
+ *
+ * This file is kept for reference but should not be imported.
+ * The pdfjs-dist worker initialization fails in Next.js server environment.
+ *
  * Pure TypeScript PDF-to-image conversion using pdfjs-dist
  *
  * Replaces the Docker-based pdf-converter-client.ts with a native

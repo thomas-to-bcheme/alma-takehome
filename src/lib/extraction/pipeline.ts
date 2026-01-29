@@ -6,34 +6,27 @@ import {
   PassportDataSchema,
   G28DataSchema,
 } from '@/types';
-import { extractWithNuExtract, bufferToBase64, NuExtractError } from './nuextract-client';
-import {
-  extractWithPassportEye,
-  isPassportEyeEnabled,
-  PassportEyeError,
-} from './passporteye-client';
-// Note: Using Gemini Vision API with native PDF support
+import { bufferToBase64 } from './nuextract-client';
 import {
   extractG28WithGemini,
+  extractPassportWithGemini,
   isGeminiVisionEnabled,
   GeminiVisionError,
   type SupportedMediaType,
 } from './gemini-vision-client';
-import { extractFromMRZ } from './mrz/parser';
-import { PASSPORT_TEMPLATE } from './templates';
 
 /**
  * Extraction pipeline that orchestrates various extraction services
  *
  * For passports:
- * 1. Attempt PassportEye extraction (highest accuracy with Tesseract OCR)
- * 2. If PassportEye fails, try MRZ parsing
- * 3. If MRZ fails, fall back to NuExtract API
+ * - Uses Gemini Vision API exclusively
+ * - Requires GOOGLE_GENERATIVE_AI_API_KEY environment variable
  *
  * For G-28 forms:
- * - Uses Gemini Vision API exclusively (no fallback)
+ * - Uses Gemini Vision API exclusively
  * - Requires GOOGLE_GENERATIVE_AI_API_KEY environment variable
- * - Errors are explicit - no silent failures
+ *
+ * Errors are explicit - no silent failures.
  */
 
 /**
@@ -85,152 +78,139 @@ export function normalizeSex(sex: string | null | undefined): 'M' | 'F' | 'X' | 
 }
 
 /**
- * Extract passport data from an image buffer
+ * Extract passport data from an image or PDF buffer
  *
- * Uses PassportEye first, then MRZ parsing, then falls back to NuExtract API
+ * Uses Gemini Vision API exclusively for extraction.
  *
- * @param imageBuffer - Raw image bytes
- * @param ocrText - Optional pre-extracted OCR text for MRZ parsing
- * @param mimeType - MIME type of the image (required for PassportEye)
+ * @param fileBuffer - Raw file bytes (image or PDF)
+ * @param _ocrText - Deprecated: kept for API compatibility
+ * @param mimeType - MIME type of the file (required for Gemini Vision)
  */
 export async function extractPassportData(
-  imageBuffer: Buffer,
-  ocrText?: string,
+  fileBuffer: Buffer,
+  _ocrText?: string,
   mimeType?: string
 ): Promise<ExtractionResult<PassportData>> {
   const errors: ExtractionError[] = [];
   const warnings: string[] = [];
 
-  // Step 1: Try PassportEye if enabled and mimeType is provided
-  if (mimeType && isPassportEyeEnabled()) {
-    try {
-      const passportEyeResult = await extractWithPassportEye(imageBuffer, mimeType);
-
-      if (passportEyeResult.success && passportEyeResult.data) {
-        // Validate with Zod
-        const validation = PassportDataSchema.safeParse(passportEyeResult.data);
-
-        if (validation.success) {
-          return {
-            success: true,
-            data: validation.data,
-            method: 'passporteye',
-            confidence: passportEyeResult.confidence,
-            errors: [],
-            warnings: [],
-          };
-        }
-
-        warnings.push('PassportEye extracted data but validation failed, trying fallbacks');
-      } else {
-        warnings.push(
-          `PassportEye extraction failed: ${passportEyeResult.error ?? 'Unknown error'}, trying fallbacks`
-        );
-      }
-    } catch (error) {
-      if (error instanceof PassportEyeError) {
-        if (error.code !== 'DISABLED') {
-          warnings.push(`PassportEye error: ${error.message}, trying fallbacks`);
-        }
-      } else {
-        warnings.push('PassportEye unexpected error, trying fallbacks');
-      }
-    }
+  // Step 1: Validate Gemini Vision is enabled
+  if (!isGeminiVisionEnabled()) {
+    console.error('[Passport Extraction] Gemini Vision is not enabled - GOOGLE_GENERATIVE_AI_API_KEY missing');
+    errors.push({
+      type: 'API_ERROR',
+      message: 'Gemini Vision is not enabled. Set GOOGLE_GENERATIVE_AI_API_KEY environment variable.',
+    });
+    return {
+      success: false,
+      data: null,
+      method: 'combined',
+      confidence: 0,
+      errors,
+      warnings,
+    };
   }
 
-  // Step 2: Try MRZ parsing if OCR text is available
-  if (ocrText) {
-    const mrzResult = extractFromMRZ(ocrText);
-
-    if (mrzResult.success && mrzResult.data) {
-      // Validate with Zod
-      const validation = PassportDataSchema.safeParse(mrzResult.data);
-
-      if (validation.success) {
-        return {
-          success: true,
-          data: validation.data,
-          method: 'mrz',
-          confidence: mrzResult.confidence,
-          errors: [],
-          warnings: mrzResult.errors.length > 0 ? ['MRZ had minor parsing issues'] : [],
-        };
-      }
-
-      warnings.push('MRZ parsed but validation failed, falling back to NuExtract');
-    } else {
-      // MRZ not found or failed - not an error, just a fallback trigger
-      warnings.push('MRZ not detected, using NuExtract API');
-    }
+  // Step 2: Validate mime type
+  if (!mimeType || (!isPdfMimeType(mimeType) && !isImageMimeType(mimeType))) {
+    console.error(`[Passport Extraction] Unsupported file type: ${mimeType}`);
+    errors.push({
+      type: 'INVALID_FILE_TYPE',
+      message: `Unsupported file type: ${mimeType}. Accepted: PDF, PNG, JPEG, GIF, WEBP`,
+    });
+    return {
+      success: false,
+      data: null,
+      method: 'combined',
+      confidence: 0,
+      errors,
+      warnings,
+    };
   }
 
-  // Step 3: Fall back to NuExtract API
+  // Step 3: Convert buffer to base64 and determine media type
+  const fileBase64 = bufferToBase64(fileBuffer);
+  let mediaType: SupportedMediaType;
+
+  if (isPdfMimeType(mimeType)) {
+    mediaType = 'application/pdf';
+  } else if (mimeType === 'image/jpeg') {
+    mediaType = 'image/jpeg';
+  } else if (mimeType === 'image/gif') {
+    mediaType = 'image/gif';
+  } else if (mimeType === 'image/webp') {
+    mediaType = 'image/webp';
+  } else {
+    mediaType = 'image/png';
+  }
+
+  // Step 4: Call Gemini Vision API
   try {
-    const base64 = bufferToBase64(imageBuffer);
-    const rawData = await extractWithNuExtract(base64, PASSPORT_TEMPLATE);
+    const extractedData = await extractPassportWithGemini(fileBase64, mediaType);
+    console.log('[Passport Extraction] Gemini response:', JSON.stringify(extractedData, null, 2));
 
-    // Normalize the extracted data
+    // Step 5: Normalize the extracted data
     const normalizedData = {
-      ...rawData,
-      dateOfBirth: normalizeDate(rawData.dateOfBirth),
-      expirationDate: normalizeDate(rawData.expirationDate),
-      sex: normalizeSex(rawData.sex),
+      documentType: extractedData.documentType ?? '',
+      issuingCountry: extractedData.issuingCountry ?? '',
+      surname: extractedData.surname ?? '',
+      givenNames: extractedData.givenNames ?? '',
+      documentNumber: extractedData.documentNumber ?? '',
+      nationality: extractedData.nationality ?? '',
+      dateOfBirth: normalizeDate(extractedData.dateOfBirth),
+      sex: normalizeSex(extractedData.sex),
+      expirationDate: normalizeDate(extractedData.expirationDate),
     };
 
-    // Validate with Zod
+    // Step 6: Validate with Zod
     const validation = PassportDataSchema.safeParse(normalizedData);
 
-    if (!validation.success) {
-      const failedFields = validation.error.issues.map((i) => i.path.join('.'));
-      errors.push({
-        type: 'VALIDATION_FAILED',
-        message: 'Extracted data failed validation',
-        fields: failedFields,
-      });
-
+    if (validation.success) {
       return {
-        success: false,
-        data: normalizedData as PassportData,
-        method: 'nuextract',
-        confidence: 0.5,
-        errors,
+        success: true,
+        data: validation.data,
+        method: 'combined',
+        confidence: 0.95,
+        errors: [],
         warnings,
       };
     }
 
+    // Partial success - return data even if validation fails
+    warnings.push('Gemini Vision extracted data but validation failed');
     return {
-      success: true,
-      data: validation.data,
-      method: ocrText ? 'combined' : 'nuextract',
-      confidence: 0.9,
-      errors: [],
+      success: false,
+      data: normalizedData as PassportData,
+      method: 'combined',
+      confidence: 0.7,
+      errors: [{
+        type: 'VALIDATION_FAILED',
+        message: 'Extracted passport data failed validation',
+        fields: validation.error.issues.map((i) => i.path.join('.')),
+      }],
       warnings,
     };
   } catch (error) {
-    if (error instanceof NuExtractError) {
-      if (error.code === 'TIMEOUT') {
-        errors.push({
-          type: 'API_TIMEOUT',
-          message: error.message,
-        });
-      } else {
-        errors.push({
-          type: 'API_ERROR',
-          message: error.message,
-          statusCode: error.statusCode,
-        });
-      }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[Passport Extraction] Gemini Vision failed: ${errorMessage}`);
+
+    if (error instanceof GeminiVisionError) {
+      errors.push({
+        type: 'API_ERROR',
+        message: `Gemini Vision extraction failed: ${error.message}`,
+        statusCode: error.statusCode,
+      });
     } else {
       errors.push({
         type: 'API_ERROR',
-        message: error instanceof Error ? error.message : 'Unknown extraction error',
+        message: `Gemini Vision extraction failed: ${errorMessage}`,
       });
     }
 
     return {
       success: false,
       data: null,
-      method: 'nuextract',
+      method: 'combined',
       confidence: 0,
       errors,
       warnings,
