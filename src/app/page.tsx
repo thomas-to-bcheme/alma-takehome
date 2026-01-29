@@ -7,16 +7,15 @@ import { UploadSection } from './UploadSection';
 import { FormA28 } from '@/components/form';
 import { mapExtractedToForm } from '@/lib/mapExtractedToForm';
 import { buildFormUrl } from '@/lib/submission/buildFormUrl';
-import { AutomationProgress, ScreenshotPreview } from '@/components/automation';
+import { AutomationProgress } from '@/components/automation';
 import { clearDraftStorage } from '@/hooks/useDraftPersistence';
 import { useExtensionDetection } from '@/hooks/useExtensionDetection';
-import type { AutomationStatus, FormFillResult } from '@/types';
+import type { AutomationStatus } from '@/types';
 import type { FormA28Data } from '@/lib/validation/formA28Schema';
 
 function MainContent(): React.JSX.Element {
   const { extractedData } = useAppState();
   const [automationStatus, setAutomationStatus] = useState<AutomationStatus>('idle');
-  const [automationResult, setAutomationResult] = useState<FormFillResult | null>(null);
 
   // Detect Chrome extension (for banner display)
   const { isExtensionDetected, isDetecting } = useExtensionDetection();
@@ -33,28 +32,14 @@ function MainContent(): React.JSX.Element {
   // Extension will auto-fill if installed, otherwise user fills manually
   const handleFillForm = useCallback(async (data: FormA28Data): Promise<void> => {
     setAutomationStatus('running');
-    setAutomationResult(null);
 
     const formUrl = buildFormUrl(data);
 
     // Always open the URL in a new tab
     window.open(formUrl, '_blank');
 
-    setAutomationStatus('success');
-    setAutomationResult({
-      success: true,
-      filledFields: [],
-      skippedFields: [],
-      failedFields: [],
-      durationMs: 0,
-    });
-    clearDraftStorage();
-  }, []);
-
-  // Handle closing the screenshot preview
-  const handleClosePreview = useCallback(() => {
-    setAutomationResult(null);
     setAutomationStatus('idle');
+    clearDraftStorage();
   }, []);
 
   return (
@@ -71,6 +56,10 @@ function MainContent(): React.JSX.Element {
                 When you click &quot;Fill Target Form&quot;, the form will open in a new tab.
                 With the extension installed, fields will be auto-filled.
               </p>
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                This is not the official Alma immigration form, product or service.
+                For questions or clarifications reach out to Thomas at thomas.to.bcheme@gmail.com
+              </p>
             </div>
           </div>
         </section>
@@ -82,16 +71,9 @@ function MainContent(): React.JSX.Element {
       </section>
 
       {/* Automation Status Card */}
-      {automationStatus !== 'idle' && !automationResult && (
+      {automationStatus !== 'idle' && (
         <section className="overflow-hidden rounded-lg bg-white p-4 shadow-lg dark:bg-zinc-900">
           <AutomationProgress status={automationStatus} />
-        </section>
-      )}
-
-      {/* Screenshot Preview Card */}
-      {automationResult && (
-        <section className="overflow-hidden rounded-lg bg-white p-4 shadow-lg dark:bg-zinc-900">
-          <ScreenshotPreview result={automationResult} onClose={handleClosePreview} />
         </section>
       )}
 

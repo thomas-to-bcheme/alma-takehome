@@ -189,11 +189,6 @@ export function UploadSection(): React.JSX.Element {
             <Alert variant="error">{passportUpload.errorMessage}</Alert>
           )}
 
-          {/* Passport success message */}
-          {passportUpload.successMessage && (
-            <Alert variant="success">{passportUpload.successMessage}</Alert>
-          )}
-
           {passportFile ? (
             <>
               <FilePreview
@@ -229,11 +224,6 @@ export function UploadSection(): React.JSX.Element {
           {/* G-28 error message */}
           {g28Upload.errorMessage && (
             <Alert variant="error">{g28Upload.errorMessage}</Alert>
-          )}
-
-          {/* G-28 success message */}
-          {g28Upload.successMessage && (
-            <Alert variant="success">{g28Upload.successMessage}</Alert>
           )}
 
           {g28File ? (
