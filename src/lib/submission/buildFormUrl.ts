@@ -3,59 +3,83 @@ import type { FormA28Data } from '@/lib/validation/formA28Schema';
 const TARGET_FORM_URL = 'https://mendrika-alma.github.io/form-submission/';
 
 /**
- * Maps FormA28Data fields to target form query parameter names.
- * Based on target form field IDs from field_mapping.py
+ * Build the target form URL with data encoded in the URL hash.
+ * Opens the form at mendrika-alma.github.io/form-submission/ with
+ * pre-filled data via base64-encoded JSON in the URL hash.
+ *
+ * The Chrome extension (alma-form-filler-extension) reads this hash
+ * and fills the form fields automatically.
+ *
+ * URL format: https://mendrika-alma.github.io/form-submission/#data=<base64-json>
  */
-const FIELD_TO_PARAM: Record<string, string> = {
-  // Part 1: Attorney Info
-  onlineAccountNumber: 'online-account',
-  attorneyLastName: 'family-name',
-  attorneyFirstName: 'given-name',
-  attorneyMiddleName: 'middle-name',
-  street: 'street-number',
-  aptSteFlrNumber: 'apt-number',
-  city: 'city',
-  state: 'state',
-  zipCode: 'zip',
-  country: 'country',
-  daytimePhone: 'daytime-phone',
-  mobilePhone: 'mobile-phone',
-  email: 'email',
+export function buildFormUrl(data: FormA28Data): string {
+  // Filter out undefined/null/empty values to minimize payload
+  const filteredData: Record<string, unknown> = {};
 
-  // Part 2: Eligibility
-  barNumber: 'bar-number',
-  licensingAuthority: 'licensing-authority',
-  lawFirmOrOrganization: 'law-firm',
-  organizationName: 'recognized-org',
-  accreditationDate: 'accreditation-date',
-  lawStudentName: 'student-name',
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null && value !== '') {
+      filteredData[key] = value;
+    }
+  }
 
-  // Part 3: Passport/Client Info
-  clientLastName: 'passport-surname',
-  clientFirstName: 'passport-given-names',
-  clientMiddleName: 'passport-middle-name',
-  passportNumber: 'passport-number',
-  countryOfIssue: 'passport-country',
-  nationality: 'passport-nationality',
-  dateOfBirth: 'passport-dob',
-  placeOfBirth: 'passport-pob',
-  sex: 'passport-sex',
-  dateOfIssue: 'passport-issue-date',
-  dateOfExpiration: 'passport-expiry-date',
+  // Encode as base64 JSON
+  const jsonString = JSON.stringify(filteredData);
+  const base64Data = btoa(jsonString);
 
-  // Part 4: Client Consent
-  clientSignatureDate: 'client-signature-date',
-
-  // Part 5: Attorney Signature
-  attorneySignatureDate: 'attorney-signature-date',
-};
+  return `${TARGET_FORM_URL}#data=${base64Data}`;
+}
 
 /**
  * Build the target form URL with query parameters from form data.
- * Opens the form at mendrika-alma.github.io/form-submission/ with
- * pre-filled data via URL query parameters.
+ * This is the legacy method - use buildFormUrl() instead for extension support.
+ *
+ * @deprecated Use buildFormUrl() with Chrome extension instead
  */
-export function buildFormUrl(data: FormA28Data): string {
+export function buildFormUrlWithQueryParams(data: FormA28Data): string {
+  const FIELD_TO_PARAM: Record<string, string> = {
+    // Part 1: Attorney Info
+    onlineAccountNumber: 'online-account',
+    attorneyLastName: 'family-name',
+    attorneyFirstName: 'given-name',
+    attorneyMiddleName: 'middle-name',
+    street: 'street-number',
+    aptSteFlrNumber: 'apt-number',
+    city: 'city',
+    state: 'state',
+    zipCode: 'zip',
+    country: 'country',
+    daytimePhone: 'daytime-phone',
+    mobilePhone: 'mobile-phone',
+    email: 'email',
+
+    // Part 2: Eligibility
+    barNumber: 'bar-number',
+    licensingAuthority: 'licensing-authority',
+    lawFirmOrOrganization: 'law-firm',
+    organizationName: 'recognized-org',
+    accreditationDate: 'accreditation-date',
+    lawStudentName: 'student-name',
+
+    // Part 3: Passport/Client Info
+    clientLastName: 'passport-surname',
+    clientFirstName: 'passport-given-names',
+    clientMiddleName: 'passport-middle-name',
+    passportNumber: 'passport-number',
+    countryOfIssue: 'passport-country',
+    nationality: 'passport-nationality',
+    dateOfBirth: 'passport-dob',
+    placeOfBirth: 'passport-pob',
+    sex: 'passport-sex',
+    dateOfIssue: 'passport-issue-date',
+    dateOfExpiration: 'passport-expiry-date',
+
+    // Part 4: Client Consent
+    clientSignatureDate: 'client-signature-date',
+
+    // Part 5: Attorney Signature
+    attorneySignatureDate: 'attorney-signature-date',
+  };
+
   const params = new URLSearchParams();
 
   // Map text/date/select fields

@@ -19,10 +19,10 @@ import {
   ClaudeVisionError,
 } from './claude-vision-client';
 import {
-  convertPdfToImages,
+  convertPdfToImagesTS,
   isPdfMimeType,
-  PdfConversionError,
-} from './pdf-converter-client';
+  PdfTsConversionError,
+} from './pdf-ts-converter';
 import { extractFromMRZ } from './mrz/parser';
 import { PASSPORT_TEMPLATE } from './templates';
 
@@ -307,10 +307,18 @@ export async function extractG28Data(
   if (isPdfMimeType(mimeType)) {
     console.log('[G28 Extraction] PDF detected, converting to page images...');
     try {
-      pageImages = await convertPdfToImages(fileBuffer);
-      console.log(`[G28 Extraction] Converted PDF to ${pageImages.length} page images`);
+      const conversionResult = await convertPdfToImagesTS(fileBuffer);
+      pageImages = conversionResult.pages;
+      console.log(`[G28 Extraction] Converted PDF to ${conversionResult.processedCount} page images`);
+
+      // Warn if not all pages were processed
+      if (conversionResult.pageCount > conversionResult.processedCount) {
+        warnings.push(
+          `PDF has ${conversionResult.pageCount} pages, processed first ${conversionResult.processedCount}`
+        );
+      }
     } catch (conversionError) {
-      if (conversionError instanceof PdfConversionError) {
+      if (conversionError instanceof PdfTsConversionError) {
         console.error(`[G28 Extraction] PDF conversion failed: ${conversionError.message}`);
         errors.push({
           type: 'API_ERROR',
@@ -325,7 +333,7 @@ export async function extractG28Data(
       return {
         success: false,
         data: null,
-        method: 'nuextract',
+        method: 'combined',
         confidence: 0,
         errors,
         warnings,

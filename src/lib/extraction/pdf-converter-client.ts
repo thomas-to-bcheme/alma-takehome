@@ -2,6 +2,19 @@
  * Client for the PDF conversion service in the Docker container
  *
  * Converts PDF files to individual page images for extraction
+ *
+ * @deprecated Use `pdf-ts-converter.ts` instead, which provides a pure TypeScript
+ * implementation using pdfjs-dist. This file is kept for backward compatibility
+ * and will be removed in a future version.
+ *
+ * Migration:
+ * ```typescript
+ * // Before (deprecated)
+ * import { convertPdfToImages } from './pdf-converter-client';
+ *
+ * // After
+ * import { convertPdfToImagesTS } from './pdf-ts-converter';
+ * ```
  */
 
 /**

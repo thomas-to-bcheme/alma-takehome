@@ -73,6 +73,18 @@ export const FORM_AUTOMATION_DEFAULTS = {
   ENABLED: true,
 } as const;
 
+// PDF conversion defaults (for TypeScript pdfjs-dist converter)
+export const PDF_CONVERSION_DEFAULTS = {
+  /** Scale factor for rendering (2.0 = 144 DPI) */
+  SCALE: 2.0,
+  /** Maximum pages to process per PDF */
+  MAX_PAGES: 10,
+  /** Output image format */
+  FORMAT: 'png',
+  /** JPEG quality if using JPEG format (0-1) */
+  QUALITY: 0.92,
+} as const;
+
 // US States for address dropdowns
 export const US_STATES = [
   { value: 'AL', label: 'Alabama' },
