@@ -10,8 +10,7 @@
  */
 
 import { google } from '@ai-sdk/google';
-import { generateObject, generateText } from 'ai';
-import { z } from 'zod';
+import { generateText } from 'ai';
 
 /**
  * Supported media types for Gemini Vision extraction
@@ -116,37 +115,55 @@ IMPORTANT:
 - If a checkbox is clearly marked/checked, set the corresponding boolean to true`;
 
 /**
- * Zod schema for passport extraction with generateObject
- * Field descriptions guide the model on what to extract
+ * The extraction prompt for passport data
+ * Uses explicit JSON format instructions to ensure reliable parsing
  */
-const PassportExtractionSchema = z.object({
-  documentType: z.string().describe('Type of document, e.g., "P" for passport'),
-  issuingCountry: z.string().describe('3-letter country code of issuing country (e.g., USA, GBR, CAN)'),
-  surname: z.string().describe('Family name / last name'),
-  givenNames: z.string().describe('Given names / first and middle names'),
-  documentNumber: z.string().describe('Passport number'),
-  nationality: z.string().describe('3-letter nationality code (e.g., USA, GBR, CAN)'),
-  dateOfBirth: z.string().describe('Date of birth in YYYY-MM-DD format'),
-  sex: z.string().describe('M, F, or X'),
-  expirationDate: z.string().describe('Expiration date in YYYY-MM-DD format'),
-});
+const PASSPORT_EXTRACTION_PROMPT = `You are a passport data extractor. Extract passport data and return ONLY a JSON object.
+
+START YOUR RESPONSE WITH { AND END WITH }. No other text before or after.
+
+Extract these fields from the passport image:
+{
+  "documentType": "P or other document type code",
+  "issuingCountry": "3-letter country code (e.g., USA, GBR, CAN)",
+  "surname": "family name / last name",
+  "givenNames": "first and middle names",
+  "documentNumber": "passport number",
+  "nationality": "3-letter nationality code",
+  "dateOfBirth": "YYYY-MM-DD format",
+  "sex": "M, F, or X",
+  "expirationDate": "YYYY-MM-DD format"
+}
+
+Read the Machine Readable Zone (MRZ) at the bottom if visible.
+Convert dates to YYYY-MM-DD format.
+Use "" for unreadable fields.
+
+RESPOND WITH ONLY THE JSON OBJECT. NO EXPLANATION. NO MARKDOWN.`;
 
 /**
- * The extraction prompt for passport data (used with generateObject)
+ * Extract JSON from a response that may contain markdown or extra text
  */
-const PASSPORT_EXTRACTION_PROMPT = `Extract passport data from this image or document.
+function extractJsonFromResponse(responseText: string): string {
+  // Try markdown code block first
+  const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    return codeBlockMatch[1].trim();
+  }
 
-Read the Machine Readable Zone (MRZ) at the bottom of the passport if visible, and also extract visible text fields from the passport.
+  // Try finding a JSON object directly (greedy match for outermost braces)
+  const jsonObjectMatch = responseText.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    return jsonObjectMatch[0];
+  }
 
-IMPORTANT:
-- Convert all dates to YYYY-MM-DD format (e.g., "1990-01-15")
-- For MRZ dates in YYMMDD format, assume years 00-30 are 2000s, 31-99 are 1900s
-- Extract the full surname and given names, not abbreviated versions
-- Use empty string "" for fields that cannot be read`;
+  // Return original if no patterns match
+  return responseText.trim();
+}
 
 /**
  * Extract passport data from an image/PDF using Gemini Vision
- * Uses generateObject for guaranteed structured JSON output
+ * Uses generateText with robust JSON extraction
  *
  * @param fileBase64 - Base64-encoded file data (without data URL prefix)
  * @param mediaType - MIME type of the file
@@ -164,9 +181,8 @@ export async function extractPassportWithGemini(
   console.log(`[Passport Extraction] Using Gemini Vision for ${isPdf ? 'PDF document' : mediaType + ' image'}...`);
 
   try {
-    const result = await generateObject({
+    const result = await generateText({
       model: google(process.env.GEMINI_MODEL ?? 'gemini-2.5-flash'),
-      schema: PassportExtractionSchema,
       messages: [
         {
           role: 'user',
@@ -186,8 +202,23 @@ export async function extractPassportWithGemini(
       maxTokens: 2048,
     });
 
-    console.log('[Passport Extraction] Extracted data:', JSON.stringify(result.object, null, 2));
-    return result.object;
+    const responseText = result.text.trim();
+    console.log('[Passport Extraction] Gemini raw response:', responseText);
+
+    // Extract JSON from response (handles markdown, extra text, etc.)
+    const jsonText = extractJsonFromResponse(responseText);
+
+    try {
+      const parsed = JSON.parse(jsonText) as PassportPageData;
+      console.log('[Passport Extraction] Parsed data:', JSON.stringify(parsed, null, 2));
+      return parsed;
+    } catch (parseError) {
+      console.error('[Passport Extraction] Failed to parse JSON:', parseError);
+      throw new GeminiVisionError(
+        `Failed to parse Gemini response as JSON: ${responseText.substring(0, 200)}`,
+        'PARSE_ERROR'
+      );
+    }
   } catch (error) {
     if (error instanceof GeminiVisionError) {
       throw error;
